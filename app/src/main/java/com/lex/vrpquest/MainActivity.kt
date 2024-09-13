@@ -1,21 +1,22 @@
 package com.lex.vrpquest
 
-import android.content.Context
-import android.content.pm.PackageManager
-import android.graphics.Paint.Align
-import android.graphics.drawable.Icon
+
+import android.content.ContentValues.TAG
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Bundle
-import android.widget.Space
+import android.text.BoringLayout
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,6 +28,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -35,12 +37,9 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -48,26 +47,41 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.toColor
-import androidx.lifecycle.ReportFragment.Companion.reportFragment
 import rikka.shizuku.Shizuku
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
+import java.io.File
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.util.Locale
+import kotlin.properties.Delegates
 
 var CustomColorScheme =
     darkColorScheme(
@@ -79,76 +93,45 @@ var CustomColorScheme =
         tertiary = Color(3,100,237,255)
     )
 
-@Composable
-fun TextFieldElement(modifier: Modifier, value: String, onValueChange: (String) -> Unit) {
-    Box(modifier = Modifier.fillMaxWidth()) {
-        TextField(
-            modifier = modifier,
-            value = value,
-            onValueChange = onValueChange,
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent,
-                cursorColor = CustomColorScheme.onSurface),
-            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Text),
-            textStyle = TextStyle(textAlign = TextAlign.Start,
-                textDecoration = TextDecoration.Underline),
-            placeholder = {
-                Text(text = "Search here",
-                    modifier
-                        .fillMaxWidth()
-                        .align(Alignment.CenterStart), color = CustomColorScheme.onSurface)
-            }
-        )
-    }
-}
-@Composable
-fun SearchBar(modifier: Modifier, value: String, onValueChange: (String) -> Unit) {
-    Box(modifier = modifier
-        .fillMaxHeight()
-        .fillMaxWidth()
-        .clip(CircleShape)
-        .background(CustomColorScheme.surface)) {
-        TextFieldElement(
-            modifier = Modifier
-                .fillMaxSize()
-                .align(Alignment.Center)
-                .clip(CircleShape),
-            value = value,
-            onValueChange = onValueChange)
-    }
-}
-@Composable
-fun BarButton(Icon: ImageVector, onClick: () -> Unit) {
-    Box(modifier = Modifier
-        .fillMaxHeight()
-        .aspectRatio(1f)
-        .clip(CircleShape)
-        .background(CustomColorScheme.surface)
-        .clickable { onClick() },
-    ) {
-        Icon(
-            modifier = Modifier.align(Alignment.Center),
-            imageVector = Icon,
-            contentDescription = ""
-        )
-    }
-}
 class MainActivity : ComponentActivity() {
-
-    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        Shizuku.addRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
+        //Shizuku.addRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
+        //showNotification(applicationContext, "TEST NOTIF")
         //checkPermission(0)
         //enableEdgeToEdge()
         setContent {
+            var Page by remember { mutableStateOf(2) }
+            var GameInfo by remember { mutableStateOf<Game?>(null) }
+
+            var Gamelist:MutableList<Game> = remember { mutableStateListOf() }
+            var Queuelist:MutableList<QeueGame> = remember { mutableStateListOf() }
+
+            var IsQueuelistEmpty by remember { mutableStateOf(false) }
+            var IsShizukuRunning by remember { mutableStateOf(Shizuku.pingBinder()) }
             MaterialTheme(colorScheme = CustomColorScheme) {
                 Surface(modifier = Modifier.fillMaxSize(), color = CustomColorScheme.background) {
-                    MainPage()
-                    Load()
+                    LaunchedEffect(Queuelist.isEmpty()) {
+                        IsQueuelistEmpty = Queuelist.isNotEmpty()
+                    }
+
+                    MainPage(Gamelist, IsQueuelistEmpty, {GameInfo = it}, {Page = it})
+
+                    when(Page) {
+                        0 -> { } //AVOID RELOADING MAINPAGE
+                        1 -> { QueuePage(Queuelist, {Page = it}) }
+                        2 -> { LoadPage({Page = it}, {Gamelist = it.toMutableList()}) }
+                        3 -> { SettingsPage({Page = it}, IsQueuelistEmpty)}
+                    }
+
+                    if (GameInfo != null) {
+                        gameInfoPage(GameInfo!!, { game ->
+                             if(!Queuelist.any { it.game == game }) {
+                                 Queuelist.add(QeueGame(game))
+                                 Startinstall(applicationContext, Queuelist)
+                             }
+                             GameInfo = null }, {GameInfo = null})
+                    }
                 }
             }
         }
@@ -160,88 +143,3 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
-fun Load() {
-    var progress by remember { mutableStateOf(0.5f) }
-    var text by remember { mutableStateOf("") }
-    val context = LocalContext.current
-    Box(modifier = Modifier
-        .fillMaxSize()
-        .background(color = CustomColorScheme.background)) {
-        Box(modifier = Modifier
-            .align(Alignment.Center)
-            .size(300.dp, 200.dp)
-            .clip(RoundedCornerShape(50.dp))
-            .background(color = CustomColorScheme.surface)
-            ) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), progress = { progress })
-            Text(modifier = Modifier.align(Alignment.Center), text = text)
-            MetadataInitialize(context, {text = it }, {progress = it})
-        }
-
-    }
-}
-
-@Composable
-fun MainPage() {
-    var text by remember { mutableStateOf("") }
-    var IsDownloadingList by remember { mutableStateOf(false) }
-    Column() {
-        Box(modifier = Modifier
-            .height(80.dp)
-            .padding(10.dp)
-            .fillMaxWidth()) {
-            Row(modifier = Modifier.fillMaxSize()) {
-                BarButton(if (IsDownloadingList) Icons.Default.Close else Icons.Default.Refresh ,
-                    onClick = {IsDownloadingList = !IsDownloadingList})
-                Spacer(modifier = Modifier.width(10.dp))
-                SearchBar(Modifier.weight(0.1f), text, {text = it})
-                Spacer(modifier = Modifier.width(10.dp))
-                BarButton(Icons.Default.Settings, {})
-            }
-        }
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(10.dp, 0.dp)) {
-            if(IsDownloadingList) {
-                DownloadingList()
-            } else {
-                AppGridList()
-            }
-        }
-    }
-}
-
-@Composable
-fun AppGridList() {
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 250.dp)
-    ) {
-        items(300) { Box(modifier = Modifier
-            .size(280.dp)
-            .padding(10.dp)
-            .clip(RoundedCornerShape(50.dp))
-            .background(
-                CustomColorScheme.surface
-            )
-            .clickable {}) {}
-        }
-    }
-}
-
-@Composable
-fun DownloadingList() {
-    LazyColumn(
-    ) {
-        items(300) { Box(modifier = Modifier
-            .height(150.dp)
-            .fillMaxWidth()
-            .padding(10.dp)
-            .clip(RoundedCornerShape(50.dp))
-            .background(
-                CustomColorScheme.surface
-            )
-            .clickable {}) {}
-        }
-    }
-}

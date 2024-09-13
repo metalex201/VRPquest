@@ -1,0 +1,344 @@
+package com.lex.vrpquest;
+
+import static android.content.ContentValues.TAG;
+
+import android.util.Log;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.RandomAccessFile;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+
+import net.sf.sevenzipjbinding.ArchiveFormat;
+import net.sf.sevenzipjbinding.ExtractAskMode;
+import net.sf.sevenzipjbinding.ExtractOperationResult;
+import net.sf.sevenzipjbinding.IArchiveExtractCallback;
+import net.sf.sevenzipjbinding.ICryptoGetTextPassword;
+import net.sf.sevenzipjbinding.IInArchive;
+import net.sf.sevenzipjbinding.IInStream;
+import net.sf.sevenzipjbinding.ISequentialOutStream;
+import net.sf.sevenzipjbinding.impl.VolumedArchiveInStream;
+import net.sf.sevenzipjbinding.IArchiveOpenVolumeCallback;
+import net.sf.sevenzipjbinding.PropID;
+import net.sf.sevenzipjbinding.SevenZip;
+import net.sf.sevenzipjbinding.SevenZipException;
+import net.sf.sevenzipjbinding.impl.RandomAccessFileInStream;
+
+public class SevenZipHandler {
+    static class ExtractionException extends Exception {
+        ExtractionException(String msg) {
+            super(msg);
+        }
+        public ExtractionException(String msg, Exception e) {
+            super(msg, e);
+        }
+    }
+
+    class ExtractCallback implements IArchiveExtractCallback, ICryptoGetTextPassword {
+        private IInArchive inArchive;
+        private int index;
+        private OutputStream outputStream;
+        private File file;
+        private boolean isFolder;
+
+        ExtractCallback(IInArchive inArchive) {
+            this.inArchive = inArchive;
+        }
+
+        @Override
+        public void setTotal(long total) {}
+        @Override
+        public void setCompleted(long completeValue) {}
+
+        @Override
+        public ISequentialOutStream getStream(int index, ExtractAskMode extractAskMode)
+                throws SevenZipException {
+
+            closeOutputStream();
+
+            this.index = index;
+            this.isFolder = (Boolean) inArchive.getProperty(index,
+                    PropID.IS_FOLDER);
+
+            String path = (String) inArchive.getProperty(index, PropID.PATH);
+            file = new File(outputDirectoryFile, path);
+            if (isFolder) {
+                createDirectory(file);
+                return null;
+            }
+
+            createDirectory(file.getParentFile());
+
+            try {
+                outputStream = new FileOutputStream(file);
+            } catch (FileNotFoundException e) {
+                throw new SevenZipException("Error opening file: "
+                        + file.getAbsolutePath(), e);
+            }
+
+            return new ISequentialOutStream() {
+                public int write(byte[] data) throws SevenZipException {
+                    try {
+                        outputStream.write(data);
+                    } catch (IOException e) {
+                        throw new SevenZipException("Error writing to file: "
+                                + file.getAbsolutePath());
+                    }
+                    return data.length; // Return amount of consumed data
+                }
+            };
+        }
+
+        private void createDirectory(File parentFile) throws SevenZipException {
+            if (!parentFile.exists()) {
+                if (!parentFile.mkdirs()) {
+                    throw new SevenZipException("Error creating directory: "
+                            + parentFile.getAbsolutePath());
+                }
+            }
+        }
+
+        private void closeOutputStream() throws SevenZipException {
+            if (outputStream != null) {
+                try {
+                    outputStream.close();
+                    outputStream = null;
+                } catch (IOException e) {
+                    throw new SevenZipException("Error closing file: "
+                            + file.getAbsolutePath());
+                }
+            }
+        }
+        @Override
+        public void prepareOperation(ExtractAskMode extractAskMode) {}
+        @Override
+        public void setOperationResult(
+                ExtractOperationResult extractOperationResult)
+                throws SevenZipException {
+            closeOutputStream();
+            String path = (String) inArchive.getProperty(index, PropID.PATH);
+            //Log.i(TAG, path);
+            //Log.i(TAG,"extractOperationResult: " + extractOperationResult.toString());
+            if (extractOperationResult != ExtractOperationResult.OK) {
+                throw new SevenZipException("Invalid file: " + path);
+            }
+        }
+
+        @Override
+        public String cryptoGetTextPassword() {
+            return pass;
+        }
+    }
+
+    //MULTIPART
+
+    private static class ArchiveOpenVolumeCallback implements IArchiveOpenVolumeCallback {
+
+        private Map<String, RandomAccessFile> openedRandomAccessFileList = new HashMap<>();
+
+        public Object getProperty(PropID propID) throws SevenZipException {
+            return null;
+        }
+
+        public IInStream getStream(String filename) throws SevenZipException {
+            try {
+                RandomAccessFile randomAccessFile = openedRandomAccessFileList
+                        .get(filename);
+                if (randomAccessFile != null) {
+                    randomAccessFile.seek(0);
+                    return new RandomAccessFileInStream(randomAccessFile);
+                }
+                randomAccessFile = new RandomAccessFile(filename, "r");
+                openedRandomAccessFileList.put(filename, randomAccessFile);
+                return new RandomAccessFileInStream(randomAccessFile);
+            } catch (FileNotFoundException fileNotFoundException) {
+                return null;
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    //-------------------------------------------------------------------------------------------
+
+    private String archive;
+    private File outputDirectoryFile;
+    private String pass;
+    private String outputDirectory;
+    private Boolean IsSingularZip;
+    SevenZipHandler(String archive, String outputDirectory, boolean IsSingularZip, String pass)  {
+        this.archive = archive;
+        this.outputDirectory = outputDirectory;
+        this.IsSingularZip = IsSingularZip;
+        this.pass = pass;
+    }
+
+    public static void extract(String archive, String outputDirectory, boolean IsSingularZip, String pass) throws ExtractionException {
+        new SevenZipHandler(archive, outputDirectory, IsSingularZip, pass).extractNonStatic();
+        Log.i(TAG,"Extracting finished");
+    }
+
+    private void extractNonStatic() throws ExtractionException {
+        //prepareOutputDirectory
+        outputDirectoryFile = new File(outputDirectory);
+        if (!outputDirectoryFile.exists()) {
+            outputDirectoryFile.mkdirs();
+        } else {
+            if (outputDirectoryFile.list().length != 0) {
+                throw new ExtractionException("Output directory not empty: "
+                        + outputDirectory);
+            }
+        }
+        if(IsSingularZip) {
+            extractArchiveSingle();
+        } else {
+            extractArchiveMulti();
+        }
+    }
+
+    private void extractArchiveMulti() throws ExtractionException {
+        IInArchive inArchive;
+        try {
+            inArchive = SevenZip.openInArchive(ArchiveFormat.SEVEN_ZIP,
+                    new VolumedArchiveInStream(archive, new ArchiveOpenVolumeCallback()), pass);
+            inArchive.extract(null, false, new ExtractCallback(inArchive));
+            inArchive.close();
+        } catch (SevenZipException e) {
+            String message = "error message:" + e.getMessage() + "," + Objects.requireNonNull(e.getCause()).getMessage();
+            throw new ExtractionException(message, e);
+        }
+
+    }
+    private void extractArchiveSingle() throws ExtractionException {
+        RandomAccessFile randomAccessFile;
+        IInArchive inArchive;
+
+        try {
+            randomAccessFile = new RandomAccessFile(archive, "r");
+            inArchive = SevenZip.openInArchive(ArchiveFormat.SEVEN_ZIP,
+                    new RandomAccessFileInStream(randomAccessFile), pass);
+        } catch (FileNotFoundException e) {
+            throw new ExtractionException("File not found", e);
+        } catch (SevenZipException e) {
+            throw new ExtractionException("Error opening archive", e);
+        }
+
+        try {
+            inArchive.extract(null, false, new ExtractCallback(inArchive));
+            inArchive.close();
+        } catch (SevenZipException e) {
+            String message = "error message:" + e.getMessage() + "," + Objects.requireNonNull(e.getCause()).getMessage();
+            throw new ExtractionException(message, e);
+        }
+    }
+}
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+
+fun extract(
+    archive: String,
+    outputDirectory: String,
+    IsSingularZip: Boolean,
+    pass: String
+) {
+    //SevenZipHandler(archive, outputDirectory, IsSingularZip, pass).extractNonStatic()
+    Log.i(ContentValues.TAG, "Extracting finished")
+}
+
+
+class ZipUtil {
+    val BUFFER_SIZE = 4096
+    public fun zip(listFiles: List<File>, destZipFile: File?) {
+        val fileOutputStream = FileOutputStream(destZipFile)
+        val zos = ZipOutputStream(fileOutputStream)
+        for (file in listFiles) {
+            if (file.isDirectory) {
+                zipDirectory(file, file.name, zos)
+            } else {
+                zipFile(file, zos)
+            }
+        }
+        zos.flush()
+        zos.close()
+    }
+
+    fun zipArray(files: Array<String?>, destZipFile: File?) {
+        val listFiles: MutableList<File> = ArrayList()
+        for (i in files.indices) {
+            listFiles.add(File(files[i]))
+        }
+        zip(listFiles, destZipFile)
+    }
+
+    private fun zipDirectory(folder: File, parentFolder: String, zos: ZipOutputStream) {
+        for (file in folder.listFiles()) {
+            if (file.isDirectory) {
+                zipDirectory(file, parentFolder + File.separator + file.name, zos)
+                continue
+            }
+            zos.putNextEntry(ZipEntry(parentFolder + File.separator + file.name))
+            val bis = BufferedInputStream(FileInputStream(file))
+            val bytesIn = ByteArray(BUFFER_SIZE)
+            var read = 0
+            while ((bis.read(bytesIn).also { read = it }) != -1) {
+                zos.write(bytesIn, 0, read)
+            }
+            zos.closeEntry()
+        }
+    }
+
+    fun zipFile(file: File, zos: ZipOutputStream) {
+        zos.putNextEntry(ZipEntry(file.name))
+        val bis = BufferedInputStream(FileInputStream(file))
+        val bytesIn = ByteArray(BUFFER_SIZE)
+        var read = 0
+        while ((bis.read(bytesIn).also { read = it }) != -1) {
+            zos.write(bytesIn, 0, read)
+        }
+        zos.closeEntry()
+    }
+}
+
+fun zip(folderToCompress: File, outputZip: File) {
+    if (outputZip.exists()) {
+        outputZip.delete()
+    }
+    outputZip.createNewFile()
+
+    ZipUtil().zip(folderToCompress.listFiles()!!.toList(), outputZip)
+}
+
+
+//count zip ui
+
+for (i in it.progressList.indices) {
+                        LinearProgressIndicator(modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(5.dp)
+                            .fillMaxWidth(),progress = { it.progressList[i]})
+                    }
+
+gamelist[0].progressList = MutableList(5) {0.0f}
+for (i in gamelist[0].progressList.indices) {
+    increment({ gamelist[0].progressList[i] = it})
+}
+
+//BENCHMARK
+
+fun benchmark(times: Int,  benchfunc: () -> Unit) {
+    var startTime: Long
+    var endTime: Long
+    var elapsedTime = 0L
+    repeat(times) {
+        startTime = System.currentTimeMillis()
+        benchfunc()
+        endTime = System.currentTimeMillis()
+        elapsedTime += endTime - startTime
+    }
+    elapsedTime = elapsedTime / times
+    Log.i(TAG,"Elapsed time: $elapsedTime milliseconds")
+}

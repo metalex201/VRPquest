@@ -1,180 +1,215 @@
 package com.lex.vrpquest
 
-import android.content.ContentValues.TAG
 import android.content.Context
-import android.util.Log
+import android.os.Environment
+import android.os.StatFs
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
-import net.sf.sevenzipjbinding.ArchiveFormat
-import net.sf.sevenzipjbinding.ExtractAskMode
-import net.sf.sevenzipjbinding.ExtractOperationResult
-import net.sf.sevenzipjbinding.IArchiveExtractCallback
-import net.sf.sevenzipjbinding.IArchiveOpenCallback
-import net.sf.sevenzipjbinding.IInArchive
-import net.sf.sevenzipjbinding.ISequentialOutStream
-import net.sf.sevenzipjbinding.SevenZip
-import net.sf.sevenzipjbinding.SevenZipException
-import net.sf.sevenzipjbinding.impl.RandomAccessFileInStream
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okio.buffer
-import okio.sink
+import kotlinx.coroutines.supervisorScope
 import org.json.JSONObject
 import java.io.File
-import java.io.FileNotFoundException
-import java.io.IOException
-import java.io.RandomAccessFile
+import java.math.BigInteger
 import java.net.URL
+import java.security.MessageDigest
+import java.util.Locale
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlin.random.Random
 
+class QeueGame(
+    val game:Game,
+    var MainProgress: MutableState<Float> = mutableStateOf(0.0f),
+    var progressList: SnapshotStateList<Float> = mutableStateListOf<Float>(),
+    var speed: MutableState<Int> = mutableStateOf(0),
+    var state: MutableState<Int> = mutableStateOf(0),
+    var IsActive: MutableState<Boolean> = mutableStateOf(false),
+    var IsClosing: MutableState<Boolean> = mutableStateOf(false)
+)
+
+fun md5Hash(str: String): String {
+    val md = MessageDigest.getInstance("MD5")
+    val bigInt = BigInteger(1, md.digest(str.toByteArray(Charsets.UTF_8)))
+    return String.format("%032x", bigInt)
+}
+
+fun findHighestNumberedFile(htmlText: String): Int {
+    val regex = """<a href="[^"]*\.7z\.(\d{3})">[^<]*</a>""".toRegex()
+    val matches = regex.findAll(htmlText)
+    var highestNumber = -1
+    for (match in matches) {
+        val fileNumber = match.groupValues[1].toInt()
+        if (fileNumber > highestNumber) {
+            highestNumber = fileNumber
+        }
+    }
+    return highestNumber
+}
+fun getFreeStorageSpace(): Long {
+    val statFs = StatFs(Environment.getExternalStorageDirectory().path)
+    val blockSize = statFs.blockSizeLong
+    val availableBlocks = statFs.availableBlocksLong
+    val freeSpace = blockSize * availableBlocks
+    return freeSpace
+}
+
+fun RemoveQueueGame(index:Int, gamelist:MutableList<QeueGame>) {
+    println("index is : $index")
+    if (index == 0) { gamelist[0].IsClosing.value = true } else
+        gamelist.removeAt(index)
+}
 
 @OptIn(ExperimentalEncodingApi::class)
-fun MetadataInitialize(context:Context, text: (String) -> Unit, progress: (Float) -> Unit) {
-    GlobalScope.launch {
-        Log.i(context.applicationInfo.name, "Downloading vrp-public.json")
-        val externalFilesDir = context.getExternalFilesDir(null)?.absolutePath.toString()
-        if (File("$externalFilesDir/meta.7z").exists()) { File("$externalFilesDir/meta.7z").delete()}
-        if (File("$externalFilesDir/meta").exists()) { File("$externalFilesDir/meta").deleteRecursively()}
-        Log.i(context.applicationInfo.name, "Downloading meta.7z")
-        val testjson = JSONObject(URL("https://raw.githubusercontent.com/vrpyou/quest/main/vrp-public.json").readText())
-        val baseUri = testjson.getString("baseUri")
-        val password = String(Base64.decode(testjson.getString("password")))
+fun Startinstall(context: Context, gamelist:MutableList<QeueGame>) {
+    val externalFilesDir = context.getExternalFilesDir(null)?.absolutePath.toString()
+    val dispatch = CoroutineScope(Dispatchers.IO)
 
-        var startTime = System.currentTimeMillis()
+    dispatch.launch(Dispatchers.IO) {
+        val game = gamelist.firstOrNull()
+        if (game != null && !game.IsActive.value) {
+            game.IsActive.value = true
+            val gamehash =  md5Hash(gamelist[0].game.ReleaseName + "\n")
+            val testjson = JSONObject(URL("https://raw.githubusercontent.com/vrpyou/quest/main/vrp-public.json").readText())
+            val baseUri = testjson.getString("baseUri")
+            val password = String(Base64.decode(testjson.getString("password")))
 
-        text(downloadFile("$baseUri" + "meta.7z", "$externalFilesDir/meta.7z","rclone/v69", { progress(it) }).toString())
+            val zipCount = findHighestNumberedFile(getUrlFileList("$baseUri/$gamehash/",  "rclone/v69"))
+            game.progressList.addAll(List(zipCount) { 0.0f })
 
-        var endTime = System.currentTimeMillis()
-        var elapsedTime = endTime - startTime
-        Log.i(context.applicationInfo.name,"Elapsed time: $elapsedTime milliseconds")
-        Log.i(context.applicationInfo.name,"password $password")
-        //unzip(File("$externalFilesDir/meta.7z"), password)
-        ExtractExample.Extract("$externalFilesDir/meta.7z", "$externalFilesDir/meta/", password)
-        //rcloneDownload("$baseUri/meta.7z", "$externalFilesDir/meta.7z")
-        //SevenUnzip("$externalFilesDir/meta.7z", "$externalFilesDir/meta", password)
-    }
-}
+            if (File("$externalFilesDir/$gamehash/").exists()) {
+                //File("$externalFilesDir/$gamehash/").deleteRecursively()
+            }
+            if (!File("$externalFilesDir/$gamehash/").exists()) {
+                File("$externalFilesDir/$gamehash/").mkdirs()
+            }
 
-fun downloadFile(url: String, destinationPath: String, customHeader: String, progress: (Float) -> Unit): Boolean {
-    val client = OkHttpClient.Builder()
-        .addNetworkInterceptor { chain ->
-            val request = chain.request().newBuilder()
-                .header("User-Agent", customHeader)
-                .url(url)
-                .build()
-            chain.proceed(request)
+            //STARTING QUEUED ZIP DOWNLOAD
+
+            var ZipCounter = 0
+            var ZipFinished = 0
+            var ZipLimit = 4
+            for (i in 1..zipCount) {
+                println("Downloading zip, $i")
+
+                val formatedNum = String.format(Locale.getDefault(), "%03d", i)
+
+                dispatch.launch(Dispatchers.IO) {
+                    println("start download loop")
+                    while (ZipCounter >= ZipLimit || !(ZipFinished + ZipLimit  >= i)) {
+                        delay(1)
+                        if(game.IsClosing.value) {
+                            println("cancel download loop")
+                            cancel("IsClosing")}
+                    }
+                    println("didnt cancel download loop, continuing")
+                    ZipCounter ++
+
+                    val zipfile = File("$externalFilesDir/$gamehash/$gamehash.7z.$formatedNum")
+                    if(zipfile.exists() &&
+                        getUrlFileSize("$baseUri/$gamehash/$gamehash.7z.$formatedNum", "rclone/v69") == zipfile.length()) {
+                        println("file already exists")
+                        ZipCounter--
+                        ZipFinished ++
+                        game.progressList.set(i-1, 1.0F)
+                        cancel("IsClosing")
+                    } else {
+                        if (zipfile.exists())  { zipfile.delete() }
+                        downloadFile("$baseUri/$gamehash/$gamehash.7z.$formatedNum",
+                            "$externalFilesDir/$gamehash/$gamehash.7z.$formatedNum",
+                            "rclone/v69",
+                            { game.progressList.set(i-1, it) }, game.IsClosing
+                        )
+                        ZipCounter--
+                        ZipFinished ++
+                    }
+
+                }
+            }
+            val progressNzip = dispatch.launch(Dispatchers.IO) {
+                val num = game.progressList.indices
+                var counter = 0F
+                while (game.IsActive.value && !game.IsClosing.value) {
+
+                    counter = 0F
+                    for (i in game.progressList) {
+                        counter += i
+                    }
+                    game.MainProgress.value = counter / (num.last + 1)
+
+                    if (game.MainProgress.value == 1.0F) {
+                        game.state.value = 1
+
+                        val extractDir = File("$externalFilesDir/$gamehash/extract/")
+                        if (extractDir.exists()) {extractDir.deleteRecursively()}
+
+                        SevenZipExtract("$externalFilesDir/$gamehash/$gamehash.7z.001",
+                            "$externalFilesDir/$gamehash/extract/",
+                            false,
+                            password,
+                            {game.MainProgress.value = it},
+                            game.IsClosing)
+                        break
+                    }
+
+                    delay(10)
+                }
+                game.IsClosing.value = true
+            }
+
+            dispatch.launch(Dispatchers.IO) {
+                while (!game.IsClosing.value) {
+                    delay(1)
+
+                }
+
+                println("CANCELLING EVERYTHING ON DOWNLOAD COROUTINE")
+
+                //CLEANUP
+                if (File("$externalFilesDir/$gamehash/").exists()) {
+                    //File("$externalFilesDir/$gamehash/").deleteRecursively()
+                }
+                game.IsClosing.value = true
+
+                progressNzip.cancelChildren()
+
+                gamelist.removeAt(0)
+
+                if (!gamelist.isEmpty()) {Startinstall(context, gamelist)}
+                cancel()
+            }
+            //increment({gamelist[0].MainProgress.value = it})
+            //if (!gamelist[0].MainProgress.value.isNaN()) { gamelist.removeAt(0)break }
+            //while ((gamelist[0].MainProgress.value ?: 1.0F) != 1.0F) { delay(10) }
         }
-        .build()
-
-    val request = Request.Builder().url(url).build()
-    val response = client.newCall(request).execute()
-
-    if (!response.isSuccessful) {
-        Log.e("com.lex.vrpquest", "Download failed: ${response.code}")
-        return false
     }
+}
 
-
-    val file = File(destinationPath)
-    if (file.parentFile!!.exists()) {
-        file.parentFile!!.mkdirs()
+fun increment(increment: (Float) -> Unit) {
+    val startTime = System.currentTimeMillis()
+    val targetTime = 60000 // 1 minute in milliseconds
+    fun calculateIncrementValue(elapsedTime: Long): Float {
+        val progress = elapsedTime.toFloat() / targetTime.toFloat()
+        return progress
     }
-
-    val sourceBytes = response.body!!.source()
-    val sink = file.sink().buffer()
-
-    val contentLength = response.body!!.contentLength()
-    var totalRead: Long = 0
-    var lastRead: Long
-    var count: Long = 0
-    while (sourceBytes
-            .read(sink.buffer, 8L * 1024)
-            .also { lastRead = it } != -1L
-    ) {
-        totalRead += lastRead
-        sink.emitCompleteSegments()
-
-        count++
-        if (count % 100 == 0L) {
-            progress((((totalRead) * 100L) / contentLength) / 100F)
+    GlobalScope.launch() {
+        while (System.currentTimeMillis() - startTime < targetTime) {
+            val elapsedTime = System.currentTimeMillis() - startTime
+            val incrementValue = calculateIncrementValue(elapsedTime)
+            increment(incrementValue)
+            Thread.sleep(1)
         }
-        //progress((((totalRead) * 100L)  / contentLength) /100F)
-    }
-
-    sink.writeAll(response.body!!.source())
-    progress(1.0F)
-    sink.close()
-    response.body!!.close()
-
-    Log.i("com.lex.vrpquest", "Download successful: $destinationPath")
-    return true
-}
-
-
-
-fun unzip(zipdir:File, pass:String) {
-    val ver = SevenZip.getSevenZipVersion();
-    try {
-        val randomAccessFile = RandomAccessFile(zipdir, "r")
-        val inStream = RandomAccessFileInStream(randomAccessFile)
-        val callback: IArchiveOpenCallback = ArchiveOpenCallback()
-        val inArchive: IInArchive = SevenZip.openInArchive(ArchiveFormat.SEVEN_ZIP, inStream, pass)
-
-        var extractCallback: IArchiveExtractCallback = ArchiveExtractCallback()
-        inArchive.extract(null, false, extractCallback)
-
-        inArchive.close()
-        inStream.close()
-    } catch (e: FileNotFoundException) {
-        Log.e(TAG, e.message!!)
-    } catch (e: SevenZipException) {
-        Log.e(TAG, e.message!!)
-    } catch (e: IOException) {
-        Log.e(TAG, e.message!!)
+        increment(1.0F)
     }
 }
 
-class ArchiveOpenCallback : IArchiveOpenCallback {
-    override fun setTotal(files: Long, bytes: Long) {
-        Log.i(TAG, "Archive open, total work: $files files, $bytes bytes")
-    }
-
-    override fun setCompleted(files: Long, bytes: Long) {
-        Log.i(TAG, "Archive open, completed: $files files, $bytes bytes")
-    }
-}
-
-class ArchiveExtractCallback : IArchiveExtractCallback {
-    override fun setTotal(total: Long) {
-
-    }
-
-    override fun setCompleted(complete: Long) {
-
-    }
-
-    override fun getStream(index: Int, extractAskMode: ExtractAskMode?): ISequentialOutStream {
-        Log.i(TAG, "Extract archive, get stream: $index to: $extractAskMode")
-        val stream: ISequentialOutStream = SequentialOutStream()
-        return stream
-    }
-
-    override fun prepareOperation(extractAskMode: ExtractAskMode?) {
-    }
-
-    override fun setOperationResult(extractOperationResult: ExtractOperationResult?) {
-
-    }
-
-}
-private class SequentialOutStream : ISequentialOutStream {
-    @Throws(SevenZipException::class)
-    override fun write(data: ByteArray): Int {
-        if (data == null || data.size == 0) {
-            throw SevenZipException("null data")
-        }
-        Log.i(TAG, "Data to write: " + data.size)
-        return data.size
-    }
-}
+//fun gameInList(Queuelist: MutableList<QeueGame>, game: Game)
