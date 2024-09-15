@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -109,7 +110,8 @@ fun CircleButton(
     color: Color = CustomColorScheme.surface,
     Icon: ImageVector = Icons.Default.Edit,
     onClick: () -> Unit,
-    IsDoted: Boolean = false
+    IsDoted: Boolean = false,
+    DotColor: Color = CustomColorScheme.tertiary
 ) {
     Box(modifier = modifier
         .fillMaxHeight()
@@ -131,147 +133,13 @@ fun CircleButton(
                 .align(Alignment.TopEnd)
                 .size(20.dp)
                 .clip(CircleShape)
-                .background(CustomColorScheme.tertiary)) {
+                .background(DotColor)) {
             }
         }
     }
 }
 
-@Composable
-fun AppGridList(Gamelist: MutableList<Game>, searchText: String, onClick: (Game) -> Unit) {
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 250.dp)
-    ) {
-        Log.i(TAG, Gamelist.count().toString())
-        items(Gamelist.filter { it.GameName.contains(searchText, ignoreCase = true) }) { game ->
-            Box(modifier = Modifier
-                .width(280.dp)
-                .padding(10.dp)
-                .clip(RoundedCornerShape(50.dp))
-                .background(
-                    CustomColorScheme.surface
-                )
-                .clickable { onClick(game) }) {
-                Column(Modifier.padding(10.dp)) {
-                    Image(modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(40.dp)),
-                        bitmap = GetGameBitmap(game.Thumbnail),
-                        contentDescription = "")
-                    Spacer(modifier = Modifier.size(10.dp))
-                    Text(text = game.GameName,
-                        modifier = Modifier.padding(20.dp, vertical = 0.dp),
-                        maxLines = 1, overflow = TextOverflow.Ellipsis,)
-                    Text(text = RoundByteValue(game.Size),
-                        modifier = Modifier.padding(20.dp, vertical = 0.dp),
-                        maxLines = 1, overflow = TextOverflow.Ellipsis,)
-                }
-            }
-        }
-    }
-}
 
-@Composable
-fun DownloadingList(Queuelist: MutableList<QeueGame>) {
-    LazyColumn(
-    ) {
-        itemsIndexed(Queuelist) { index, it ->
-            var IsDropDown by remember { mutableStateOf(false) }
-            Column(modifier = Modifier
-                .fillMaxWidth()
-                .padding(10.dp)
-                .clip(RoundedCornerShape(50.dp))
-                .background(CustomColorScheme.surface))
-            {
-                Box(modifier = Modifier
-                    .height(150.dp)
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(50.dp))) {
-                    Row(Modifier.padding(10.dp)) {
-                        Image(modifier = Modifier
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(40.dp))
-                            .align(Alignment.CenterVertically),
-                            bitmap = GetGameBitmap(it.game.Thumbnail),
-                            contentDescription = "")
-                        Spacer(modifier = Modifier.size(20.dp))
-                        Column(
-                            Modifier
-                                .weight(0.1f)
-                                .padding(20.dp)) {
-                            Box(modifier = Modifier
-                                .fillMaxSize()
-                                .weight(0.1f)) {
-                                Text(modifier = Modifier.align(Alignment.CenterStart),
-                                    text = it.game.GameName)
-                            }
-                            if(it.IsActive.value) {
-                                Box(modifier = Modifier
-                                    .fillMaxSize()
-                                    .weight(0.1f)) {
-                                    LinearProgressIndicator(
-                                        modifier = Modifier
-                                            .align(Alignment.Center)
-                                            .fillMaxWidth(),
-                                        color = CustomColorScheme.tertiary,
-                                        trackColor = CustomColorScheme.onSurface,
-                                        progress = { it.MainProgress.value })
-                                }
-                            }
-                        }
-                        if(it.IsActive.value) {
-                            Spacer(modifier = Modifier.size(20.dp))
-                            CircleButton(modifier = Modifier.padding(0.dp, 30.dp),
-                                Icon = if (IsDropDown) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                onClick = { IsDropDown = !IsDropDown }, color = CustomColorScheme.tertiary)
-                        }
-                        CircleButton(modifier = Modifier.padding(30.dp), Icon = Icons.Default.Close, onClick = {
-                            RemoveQueueGame(index, Queuelist)
-                        }, color = CustomColorScheme.error)
-                    }
-                }
-                if(IsDropDown) {
-                    Spacer(modifier = Modifier.size(10.dp))
-                    Box(modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(50.dp, 0.dp)
-                        .height(3.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(color = CustomColorScheme.background))
-                    Spacer(modifier = Modifier.size(10.dp))
-                    Box(modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(50.dp, 0.dp)) {
-                        when(it.state.value) {
-                            0 -> { Text(text = "Downloading.")
-                            }
-                            1 -> { Text(text = "Extracting..")
-                            }
-                            2 -> { Text(text = "Moving obb.") }
-                        }
-                    }
-
-                    for(i in it.progressList.indices) {
-                        Spacer(modifier = Modifier.size(20.dp))
-                        Row(modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(50.dp, 0.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = "7z." + String.format(Locale.getDefault(), "%03d", i + 1))
-                            Spacer(modifier = Modifier.size(10.dp))
-                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth(),
-                                color = CustomColorScheme.tertiary,
-                                trackColor = CustomColorScheme.onSurface,
-                                progress = { it.progressList[i] })
-                        }
-                    }
-                    Spacer(modifier = Modifier.size(20.dp))
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun GetGameBitmap(thumbnail: String): ImageBitmap {

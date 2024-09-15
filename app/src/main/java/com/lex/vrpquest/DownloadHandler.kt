@@ -41,7 +41,7 @@ class Game(
 @OptIn(ExperimentalEncodingApi::class)
 fun MetadataInitialize(context:Context, state: (Int) -> Unit, progress: (Float) -> Unit, metadata: (ArrayList<Game>) -> Unit) {
     GlobalScope.launch {
-         if (1 == 0) {
+         if (1 == 0 ) {
             Log.i(context.applicationInfo.name, "Downloading vrp-public.json")
             val externalFilesDir = context.getExternalFilesDir(null)?.absolutePath.toString()
             if (File("$externalFilesDir/meta.7z").exists()) { File("$externalFilesDir/meta.7z").delete()}
@@ -56,7 +56,7 @@ fun MetadataInitialize(context:Context, state: (Int) -> Unit, progress: (Float) 
             state(1)
             SevenZipExtract("$externalFilesDir/meta.7z", "$externalFilesDir/meta/", true, password, { progress(it) });
         }
-        delay(50)
+        delay(100)
         state(2)
         metadata(SortGameList(context, { progress(it) }))
         state(3)

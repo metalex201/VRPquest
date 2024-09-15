@@ -101,37 +101,81 @@ class MainActivity : ComponentActivity() {
         //checkPermission(0)
         //enableEdgeToEdge()
         setContent {
-            var Page by remember { mutableStateOf(2) }
+            var Page by remember { mutableStateOf(2) } //2
             var GameInfo by remember { mutableStateOf<Game?>(null) }
 
             var Gamelist:MutableList<Game> = remember { mutableStateListOf() }
-            var Queuelist:MutableList<QeueGame> = remember { mutableStateListOf() }
+            var Queuelist:MutableList<QueueGame> = remember { mutableStateListOf() }
 
             var IsQueuelistEmpty by remember { mutableStateOf(false) }
-            var IsShizukuRunning by remember { mutableStateOf(Shizuku.pingBinder()) }
+            var IsShizukuConnected by remember { mutableStateOf(Shizuku.pingBinder() && checkPermission(0)) }    // either shizuku doesnt exist or the app doesnt have permission
+
+            var searchText by remember { mutableStateOf("") }
+
             MaterialTheme(colorScheme = CustomColorScheme) {
                 Surface(modifier = Modifier.fillMaxSize(), color = CustomColorScheme.background) {
                     LaunchedEffect(Queuelist.isEmpty()) {
                         IsQueuelistEmpty = Queuelist.isNotEmpty()
                     }
+                    Box(modifier = Modifier
+                        .fillMaxSize()
+                        .background(color = CustomColorScheme.background)
+                        .pointerInput(Unit) {}) {
+                        Column() {
+                            Box(modifier = Modifier
+                                .height(80.dp)
+                                .padding(10.dp)
+                                .fillMaxWidth()) {
+                                Row(modifier = Modifier.fillMaxSize()) {
+                                    CircleButton(
+                                        Icon = if (Page == 1) Icons.Default.Close else Icons.Default.Refresh,
+                                        onClick = {if (Page == 1) Page = 0 else Page = 1},
+                                        IsDoted = IsQueuelistEmpty
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
 
-                    MainPage(Gamelist, IsQueuelistEmpty, {GameInfo = it}, {Page = it})
-
-                    when(Page) {
-                        0 -> { } //AVOID RELOADING MAINPAGE
-                        1 -> { QueuePage(Queuelist, {Page = it}) }
-                        2 -> { LoadPage({Page = it}, {Gamelist = it.toMutableList()}) }
-                        3 -> { SettingsPage({Page = it}, IsQueuelistEmpty)}
+                                    //SearchBar(Modifier.weight(0.1f), "", {}, "Queue List")
+                                    SearchBar(Modifier.weight(0.1f), searchText, {searchText = it}, "Search here")
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    CircleButton(Icon = if (Page == 3) Icons.Default.Close else Icons.Default.Settings,
+                                        onClick = {if (Page == 3) Page = 0 else Page = 3},
+                                        IsDoted = !IsShizukuConnected,
+                                        DotColor = CustomColorScheme.error
+                                    )
+                                }
+                            }
+                            Box(modifier = Modifier
+                                .fillMaxSize()
+                                .padding(10.dp, 0.dp)) {
+                                MainPage(Gamelist, searchText, {GameInfo = it}) //MAINPAGE ALWAYS COMPOSED
+                                if (Page != 0) { // OVERLAY OVER MAINPAGE
+                                    Box(modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(color = CustomColorScheme.background)
+                                        .pointerInput(Unit) {}) { // AVOID PASSING CLICKS THROUGH TO MAINPAGE
+                                        when(Page) {
+                                            0 -> {} //AVOID RELOADING MAINPAGE TO SAVE PROCESSING
+                                            1 -> {QueuePage(Queuelist)}
+                                            2 -> {} //LOADPAGE IS OVERLAYED NOT NESTED
+                                            3 -> {SettingsPage()}
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
 
-                    if (GameInfo != null) {
-                        gameInfoPage(GameInfo!!, { game ->
-                             if(!Queuelist.any { it.game == game }) {
-                                 Queuelist.add(QeueGame(game))
-                                 Startinstall(applicationContext, Queuelist)
-                             }
-                             GameInfo = null }, {GameInfo = null})
-                    }
+                    if (Page == 2) LoadPage({Page = 0}, {Gamelist = it.toMutableList()})
+
+
+                    gameInfoPage(GameInfo, { game ->
+                         if(!Queuelist.any { it.game == game }) {
+                             Queuelist.add(QueueGame(game))
+                             Startinstall(applicationContext, Queuelist)
+                         }
+                         GameInfo = null
+                         }, {GameInfo = null})
+
                 }
             }
         }

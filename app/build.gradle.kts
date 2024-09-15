@@ -6,7 +6,7 @@ plugins {
 android {
     namespace = "com.lex.vrpquest"
     compileSdk = 34
-
+    buildToolsVersion = "34.0.0"
     defaultConfig {
         applicationId = "com.lex.vrpquest"
         minSdk = 26
@@ -53,6 +53,8 @@ dependencies {
 
     implementation("com.github.omicronapps:7-Zip-JBinding-4Android:Release-16.02-2.02")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation(libs.androidx.runner)
+    implementation(libs.androidx.espresso.core)
     //implementation(files("C:\\Users\\Metalex\\AndroidStudioProjects\\VRPquest\\app\\libs\\libp7zip-release.aar"))
     val shizuku_version = "13.1.5"
     implementation("dev.rikka.shizuku:api:$shizuku_version")

@@ -1,7 +1,12 @@
 package com.lex.vrpquest
 
 import android.content.pm.PackageManager
+import android.os.ParcelFileDescriptor
+import android.os.RemoteException
 import rikka.shizuku.Shizuku
+import rikka.shizuku.ShizukuRemoteProcess
+import java.io.BufferedInputStream
+import java.io.ByteArrayOutputStream
 
 fun onRequestPermissionsResult(requestCode: Int, grantResult: Int) {
     val granted = grantResult == PackageManager.PERMISSION_GRANTED
@@ -33,3 +38,8 @@ fun checkPermission(code: Int): Boolean {
         return false
     }
 }
+
+fun IsShizukuConnected():Boolean {
+    return (Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED)
+}
+

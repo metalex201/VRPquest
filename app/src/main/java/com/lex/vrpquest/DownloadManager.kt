@@ -27,7 +27,7 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.random.Random
 
-class QeueGame(
+class QueueGame(
     val game:Game,
     var MainProgress: MutableState<Float> = mutableStateOf(0.0f),
     var progressList: SnapshotStateList<Float> = mutableStateListOf<Float>(),
@@ -63,14 +63,14 @@ fun getFreeStorageSpace(): Long {
     return freeSpace
 }
 
-fun RemoveQueueGame(index:Int, gamelist:MutableList<QeueGame>) {
+fun RemoveQueueGame(index:Int, gamelist:MutableList<QueueGame>) {
     println("index is : $index")
     if (index == 0) { gamelist[0].IsClosing.value = true } else
         gamelist.removeAt(index)
 }
 
 @OptIn(ExperimentalEncodingApi::class)
-fun Startinstall(context: Context, gamelist:MutableList<QeueGame>) {
+fun Startinstall(context: Context, gamelist:MutableList<QueueGame>) {
     val externalFilesDir = context.getExternalFilesDir(null)?.absolutePath.toString()
     val dispatch = CoroutineScope(Dispatchers.IO)
 
