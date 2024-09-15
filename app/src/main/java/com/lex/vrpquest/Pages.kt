@@ -52,12 +52,12 @@ import java.util.Locale
 @Composable
 fun MainPage(Gamelist: MutableList<Game>, searchText: String, onClick: (Game) -> Unit) {
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 250.dp)
+        columns = GridCells.Adaptive(minSize = 200.dp)
     ) {
         Log.i(TAG, Gamelist.count().toString())
         items(Gamelist.filter { it.GameName.contains(searchText, ignoreCase = true) }) { game ->
             Box(modifier = Modifier
-                .width(280.dp)
+                .fillMaxWidth()
                 .padding(10.dp)
                 .clip(RoundedCornerShape(50.dp))
                 .background(

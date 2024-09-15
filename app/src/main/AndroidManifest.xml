@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -24,9 +26,9 @@
             android:resizeableActivity="true"
             android:stateNotNeeded="true"
             android:excludeFromRecents="true">
-            <layout android:defaultWidth="706dp" android:defaultHeight="442dp" android:gravity="top|end" />
+            <layout android:defaultWidth="1020dp" android:defaultHeight="640dp" android:gravity="top|end" />
             <meta-data android:name="com.oculus.vrshell.supports_free_resizing" android:value="true"/>
-            <meta-data android:name="com.oculus.vrshell.free_resizing_limits" android:value="300,2000,50000,10000"/>
+            <meta-data android:name="com.oculus.vrshell.free_resizing_limits" android:value="300,200,50000,10000"/>
             <meta-data android:name="com.oculus.vrshell.supports_multi_instance" android:value="true" />
             <meta-data android:name="com.oculus.vrshell.supports_multi_cursor" android:value="true" />
             <meta-data android:name="com.oculus.lazy_gpumem_allocation" android:value="true" />

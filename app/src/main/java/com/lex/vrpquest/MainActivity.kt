@@ -9,6 +9,7 @@ import android.text.BoringLayout
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -100,7 +101,10 @@ class MainActivity : ComponentActivity() {
         //showNotification(applicationContext, "TEST NOTIF")
         //checkPermission(0)
         //enableEdgeToEdge()
+
         setContent {
+            //OBB TEST
+
             var Page by remember { mutableStateOf(2) } //2
             var GameInfo by remember { mutableStateOf<Game?>(null) }
 
