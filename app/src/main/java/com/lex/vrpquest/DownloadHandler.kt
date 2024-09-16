@@ -41,7 +41,7 @@ class Game(
 @OptIn(ExperimentalEncodingApi::class)
 fun MetadataInitialize(context:Context, state: (Int) -> Unit, progress: (Float) -> Unit, metadata: (ArrayList<Game>) -> Unit) {
     GlobalScope.launch {
-         if (1 == 0 ) {
+         if (1 == 0) {
             Log.i(context.applicationInfo.name, "Downloading vrp-public.json")
             val externalFilesDir = context.getExternalFilesDir(null)?.absolutePath.toString()
             if (File("$externalFilesDir/meta.7z").exists()) { File("$externalFilesDir/meta.7z").delete()}

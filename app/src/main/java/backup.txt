@@ -342,3 +342,87 @@ fun benchmark(times: Int,  benchfunc: () -> Unit) {
     elapsedTime = elapsedTime / times
     Log.i(TAG,"Elapsed time: $elapsedTime milliseconds")
 }
+
+
+@RequiresApi(Build.VERSION_CODES.R)
+@Composable
+fun PermissionPage() {
+    val context = LocalContext.current
+    var InstallApkPerm by remember { mutableStateOf(context.packageManager.canRequestPackageInstalls()) }
+    var FileAccessPerm by remember { mutableStateOf(Environment.isExternalStorageManager()) }
+
+    LaunchedEffect(true) {
+        while(true) {
+            delay(10)
+            InstallApkPerm = context.packageManager.canRequestPackageInstalls()
+            FileAccessPerm = Environment.isExternalStorageManager()
+
+            if (InstallApkPerm && FileAccessPerm) {
+                break
+            }
+        }
+        cancel()
+    }
+
+
+    fun grant() {
+        if (!InstallApkPerm) {
+            val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+                .setData(Uri.parse(String.format("package:%s", context.packageName)))
+            context.startActivity(intent)
+        }
+        if (!FileAccessPerm) {
+            val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                .setData(Uri.parse(String.format("package:%s", context.packageName)))
+            context.startActivity(intent)
+        }
+        //startActivityForResult()
+    }
+    if (!(InstallApkPerm && FileAccessPerm)) {
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .background(color = CustomColorScheme.background)
+            .pointerInput(Unit) {}) {
+            Box(modifier = Modifier
+                .padding(10.dp)
+                .clip(RoundedCornerShape(50.dp))
+                .width(280.dp)
+                .align(Alignment.Center)
+                .background(
+                    CustomColorScheme.surface
+                )) {
+                Column(Modifier.padding(20.dp)) {
+                    Text(text = "These permissions are required by this application:")
+                    Spacer(modifier = Modifier.size(20.dp))
+                        Text(modifier = Modifier.padding(20.dp,0.dp),
+                            color = if (InstallApkPerm) CustomColorScheme.tertiary else CustomColorScheme.error,
+                            text = "- INSTALL APK")
+                        Text(modifier = Modifier.padding(20.dp,0.dp),
+                            color = if (FileAccessPerm) CustomColorScheme.tertiary else CustomColorScheme.error,
+                            text = "- WRITE FILE ACCESS")
+
+                    Spacer(modifier = Modifier.size(20.dp))
+                    Row() {
+                        Button(modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(0.1F)
+                            .height(50.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = CustomColorScheme.tertiary,
+                                contentColor = CustomColorScheme.onSurface),
+                            onClick = {grant()}, ) { Text(text = "GRANT") }
+                        Spacer(modifier = Modifier.size(10.dp))
+                        Button(modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(0.1F)
+                            .height(50.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = CustomColorScheme.error,
+                                contentColor = CustomColorScheme.onSurface),
+                            onClick = {System.out.close() }, ) { Text(text = "EXIT") }
+                    }
+                }
+            }
+        }
+    }
+}

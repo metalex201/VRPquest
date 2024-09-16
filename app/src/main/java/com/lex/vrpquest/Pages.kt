@@ -1,7 +1,18 @@
 package com.lex.vrpquest
 
+import android.app.Activity
 import android.content.ContentValues.TAG
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.Settings
 import android.util.Log
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -27,26 +38,32 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat.finishAffinity
+import androidx.core.app.ActivityCompat.startActivityForResult
+import androidx.core.content.ContextCompat.startActivity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 @Composable
@@ -211,7 +228,7 @@ fun gameInfoPage(game:Game?, OnInstall: (Game) -> Unit, OnClose: () -> Unit) {
             Box(modifier = Modifier
                 .padding(10.dp)
                 .clip(RoundedCornerShape(50.dp))
-                .width(320.dp)
+                .width(280.dp)
                 .align(Alignment.Center)
                 .background(
                     CustomColorScheme.surface
@@ -325,3 +342,76 @@ fun LoadPage(Page: (Int) -> Unit, metadata: (ArrayList<Game>) -> Unit) {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.R)
+@Composable
+fun PermissionPage() {
+    val context = LocalContext.current
+    var InstallApkPerm by remember { mutableStateOf(context.packageManager.canRequestPackageInstalls()) }
+
+    LaunchedEffect(true) {
+        while(true) {
+            delay(10)
+            InstallApkPerm = context.packageManager.canRequestPackageInstalls()
+
+            if (InstallApkPerm) {
+                break
+            }
+        }
+        cancel()
+    }
+
+
+    fun grant() {
+        if (!InstallApkPerm) {
+            val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+                .setData(Uri.parse(String.format("package:%s", context.packageName)))
+            context.startActivity(intent)
+        }
+
+        //startActivityForResult()
+    }
+    if (!(InstallApkPerm)) {
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .background(color = CustomColorScheme.background)
+            .pointerInput(Unit) {}) {
+            Box(modifier = Modifier
+                .padding(10.dp)
+                .clip(RoundedCornerShape(50.dp))
+                .width(280.dp)
+                .align(Alignment.Center)
+                .background(
+                    CustomColorScheme.surface
+                )) {
+                Column(Modifier.padding(20.dp)) {
+                    Text(text = "These permissions are required by this application:")
+                    Spacer(modifier = Modifier.size(20.dp))
+                        Text(modifier = Modifier.padding(20.dp,0.dp),
+                            color = if (InstallApkPerm) CustomColorScheme.tertiary else CustomColorScheme.error,
+                            text = "- INSTALL APK")
+
+                    Spacer(modifier = Modifier.size(20.dp))
+                    Row() {
+                        Button(modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(0.1F)
+                            .height(50.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = CustomColorScheme.tertiary,
+                                contentColor = CustomColorScheme.onSurface),
+                            onClick = {grant()}, ) { Text(text = "GRANT") }
+                        Spacer(modifier = Modifier.size(10.dp))
+                        Button(modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(0.1F)
+                            .height(50.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = CustomColorScheme.error,
+                                contentColor = CustomColorScheme.onSurface),
+                            onClick = {System.out.close() }, ) { Text(text = "EXIT") }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,6 +1,9 @@
 package com.lex.vrpquest
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.nfc.Tag
 import android.os.Environment
 import android.os.StatFs
 import androidx.compose.runtime.MutableState
@@ -8,6 +11,8 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.core.content.ContextCompat.startActivity
+import androidx.core.content.FileProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -21,6 +26,9 @@ import org.json.JSONObject
 import java.io.File
 import java.math.BigInteger
 import java.net.URL
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import java.util.Locale
 import kotlin.io.encoding.Base64
@@ -66,7 +74,7 @@ fun getFreeStorageSpace(): Long {
 fun RemoveQueueGame(index:Int, gamelist:MutableList<QueueGame>) {
     println("index is : $index")
     if (index == 0) { gamelist[0].IsClosing.value = true } else
-        gamelist.removeAt(index)
+    gamelist.removeAt(index)
 }
 
 @OptIn(ExperimentalEncodingApi::class)
@@ -79,6 +87,7 @@ fun Startinstall(context: Context, gamelist:MutableList<QueueGame>) {
         if (game != null && !game.IsActive.value) {
             game.IsActive.value = true
             val gamehash =  md5Hash(gamelist[0].game.ReleaseName + "\n")
+
             val testjson = JSONObject(URL("https://raw.githubusercontent.com/vrpyou/quest/main/vrp-public.json").readText())
             val baseUri = testjson.getString("baseUri")
             val password = String(Base64.decode(testjson.getString("password")))
@@ -149,20 +158,48 @@ fun Startinstall(context: Context, gamelist:MutableList<QueueGame>) {
                     if (game.MainProgress.value == 1.0F) {
                         game.state.value = 1
 
-                        val extractDir = File("$externalFilesDir/$gamehash/extract/")
+                        val extractDir = File("$externalFilesDir/${game.game.ReleaseName}/")
                         if (extractDir.exists()) {extractDir.deleteRecursively()}
 
                         SevenZipExtract("$externalFilesDir/$gamehash/$gamehash.7z.001",
-                            "$externalFilesDir/$gamehash/extract/",
+                            "$externalFilesDir/${game.game.ReleaseName}/",
                             false,
                             password,
                             {game.MainProgress.value = it},
                             game.IsClosing)
+                        if (game.MainProgress.value == 1F) {
+                            val zipDir = File("$externalFilesDir/$gamehash/")
+                            //if (zipDir.exists()) {extractDir.deleteRecursively()}
+                        }
+
+                        val apkFilePath = "$externalFilesDir/${game.game.ReleaseName}/${game.game.ReleaseName}/${game.game.PackageName}.apk"
+                        println(apkFilePath)
+                        val apkfile = File(apkFilePath)
+                        println("afilepk : ${apkfile.exists()}")
+                        val apkUri = FileProvider.getUriForFile(context, ".fileprovider", apkfile)
+
+                        val intent = Intent(Intent.ACTION_VIEW).apply {setDataAndType(apkUri, "application/vnd.android.package-archive")
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        }
+                        startActivity(context, intent, null)
+
+                        val movfile = File("$externalFilesDir/${game.game.ReleaseName}/${game.game.ReleaseName}/${game.game.PackageName}")
+                        val destfile = File("/storage/emulated/0/Android/obb/${game.game.PackageName}/")
+
+                        movfile.copyRecursively(destfile)
+
                         break
+
+
                     }
 
                     delay(10)
                 }
+                //val sourcePath = File("C:/Users/sampleuser/Downloads/test.txt")
+                //val targetPath = File("C:/Users/sampleuser/Documents/test.txt")
+
+
+
                 game.IsClosing.value = true
             }
 
