@@ -73,8 +73,9 @@ fun getFreeStorageSpace(): Long {
 
 fun RemoveQueueGame(index:Int, gamelist:MutableList<QueueGame>) {
     println("index is : $index")
-    if (index == 0) { gamelist[0].IsClosing.value = true } else
-    gamelist.removeAt(index)
+    if (index == 0) { gamelist[0].IsClosing.value = true } else {
+        gamelist.removeAt(index)
+    }
 }
 
 @OptIn(ExperimentalEncodingApi::class)
@@ -91,115 +92,140 @@ fun Startinstall(context: Context, gamelist:MutableList<QueueGame>) {
             val testjson = JSONObject(URL("https://raw.githubusercontent.com/vrpyou/quest/main/vrp-public.json").readText())
             val baseUri = testjson.getString("baseUri")
             val password = String(Base64.decode(testjson.getString("password")))
+            val hashfolder = "$externalFilesDir/$gamehash/"
 
             val zipCount = findHighestNumberedFile(getUrlFileList("$baseUri/$gamehash/",  "rclone/v69"))
-            game.progressList.addAll(List(zipCount) { 0.0f })
+            //if (File(hashfolder).exists()) { //File("$externalFilesDir/$gamehash/").deleteRecursively() }
 
-            if (File("$externalFilesDir/$gamehash/").exists()) {
-                //File("$externalFilesDir/$gamehash/").deleteRecursively()
-            }
-            if (!File("$externalFilesDir/$gamehash/").exists()) {
-                File("$externalFilesDir/$gamehash/").mkdirs()
-            }
+            if (!(!File("$externalFilesDir/$gamehash/").exists() &&
+                File("$externalFilesDir/${game.game.ReleaseName}/${game.game.ReleaseName}/${game.game.PackageName}").exists())) {
 
-            //STARTING QUEUED ZIP DOWNLOAD
+                game.progressList.addAll(List(zipCount) { 0.0f })
 
-            var ZipCounter = 0
-            var ZipFinished = 0
-            var ZipLimit = 4
-            for (i in 1..zipCount) {
-                println("Downloading zip, $i")
-
-                val formatedNum = String.format(Locale.getDefault(), "%03d", i)
-
-                dispatch.launch(Dispatchers.IO) {
-                    println("start download loop")
-                    while (ZipCounter >= ZipLimit || !(ZipFinished + ZipLimit  >= i)) {
-                        delay(1)
-                        if(game.IsClosing.value) {
-                            println("cancel download loop")
-                            cancel("IsClosing")}
-                    }
-                    println("didnt cancel download loop, continuing")
-                    ZipCounter ++
-
-                    val zipfile = File("$externalFilesDir/$gamehash/$gamehash.7z.$formatedNum")
-                    if(zipfile.exists() &&
-                        getUrlFileSize("$baseUri/$gamehash/$gamehash.7z.$formatedNum", "rclone/v69") == zipfile.length()) {
-                        println("file already exists")
-                        ZipCounter--
-                        ZipFinished ++
-                        game.progressList.set(i-1, 1.0F)
-                        cancel("IsClosing")
-                    } else {
-                        if (zipfile.exists())  { zipfile.delete() }
-                        downloadFile("$baseUri/$gamehash/$gamehash.7z.$formatedNum",
-                            "$externalFilesDir/$gamehash/$gamehash.7z.$formatedNum",
-                            "rclone/v69",
-                            { game.progressList.set(i-1, it) }, game.IsClosing
-                        )
-                        ZipCounter--
-                        ZipFinished ++
-                    }
-
+                if (!File(hashfolder).exists()) {
+                    File(hashfolder).mkdirs()
                 }
+
+                //ONLY START DOWNLOAD IF EXTRACTED FOLDER DOESNT EXIST
+
+                //STARTING QUEUED ZIP DOWNLOAD
+                var ZipCounter = 0
+                var ZipFinished = 0
+                var ZipLimit = 4
+                for (i in 1..zipCount) {
+                    println("Downloading zip, $i")
+
+                    val formatedNum = String.format(Locale.getDefault(), "%03d", i)
+
+                    dispatch.launch(Dispatchers.IO) {
+                        println("start download loop")
+                        while (ZipCounter >= ZipLimit || !(ZipFinished + ZipLimit  >= i)) {
+                            delay(1)
+                            if(game.IsClosing.value) {
+                                println("cancel download loop")
+                                cancel("IsClosing")}
+                        }
+                        println("didnt cancel download loop, continuing")
+                        ZipCounter ++
+
+                        val zipfile = File("$externalFilesDir/$gamehash/$gamehash.7z.$formatedNum")
+                        if(zipfile.exists() &&
+                            getUrlFileSize("$baseUri/$gamehash/$gamehash.7z.$formatedNum", "rclone/v69") == zipfile.length()) {
+                            println("file already exists")
+                            ZipCounter--
+                            ZipFinished ++
+                            game.progressList.set(i-1, 1.0F)
+                            cancel("IsClosing")
+                        } else {
+                            if (zipfile.exists())  { zipfile.delete() }
+                            downloadFile("$baseUri/$gamehash/$gamehash.7z.$formatedNum",
+                                "$externalFilesDir/$gamehash/$gamehash.7z.$formatedNum",
+                                "rclone/v69",
+                                { game.progressList.set(i-1, it) }, game.IsClosing
+                            )
+                            ZipCounter--
+                            ZipFinished ++
+                        }
+
+                    }
+                }
+            } else {
+                //IF ARCHIVE ALREADY EXTRACTED THEN ITS FILES HAVE BEEN INSTALLED
+                game.MainProgress.value = 1.0F
             }
+
+
             val progressNzip = dispatch.launch(Dispatchers.IO) {
                 val num = game.progressList.indices
                 var counter = 0F
                 while (game.IsActive.value && !game.IsClosing.value) {
-
-                    counter = 0F
-                    for (i in game.progressList) {
-                        counter += i
-                    }
-                    game.MainProgress.value = counter / (num.last + 1)
-
-                    if (game.MainProgress.value == 1.0F) {
+                    if (game.MainProgress.value != 1.0F) {
+                        counter = 0F
+                        for (i in game.progressList) {
+                            counter += i
+                        }
+                        game.MainProgress.value = counter / (num.last + 1)
+                    } else {
                         game.state.value = 1
 
                         val extractDir = File("$externalFilesDir/${game.game.ReleaseName}/")
-                        if (extractDir.exists()) {extractDir.deleteRecursively()}
+                        game.MainProgress.value = 1F
+                        if (extractDir.exists()) {
+                            if(File(hashfolder).exists()) {
+                                extractDir.deleteRecursively()
 
-                        SevenZipExtract("$externalFilesDir/$gamehash/$gamehash.7z.001",
-                            "$externalFilesDir/${game.game.ReleaseName}/",
-                            false,
-                            password,
-                            {game.MainProgress.value = it},
-                            game.IsClosing)
+                                SevenZipExtract("$externalFilesDir/$gamehash/$gamehash.7z.001",
+                                    "$externalFilesDir/${game.game.ReleaseName}/",
+                                    false,
+                                    password,
+                                    {game.MainProgress.value = it},
+                                    game.IsClosing
+                                )
+                                File(hashfolder).deleteRecursively()
+                            }
+                        } else  {
+                            SevenZipExtract("$externalFilesDir/$gamehash/$gamehash.7z.001",
+                                "$externalFilesDir/${game.game.ReleaseName}/",
+                                false,
+                                password,
+                                {game.MainProgress.value = it},
+                                game.IsClosing
+                            )
+                            File(hashfolder).deleteRecursively()
+                        }
+
                         if (game.MainProgress.value == 1F) {
+                            //move obb
+                            game.state.value = 2
+
+                            val movfile = File("$externalFilesDir/${game.game.ReleaseName}/${game.game.ReleaseName}/${game.game.PackageName}")
+                            val destfile = File("/storage/emulated/0/Android/obb/${game.game.PackageName}/")
+
+                            if (destfile.exists()) { destfile.deleteRecursively() }
+
+                            moveDirectory(movfile, destfile, {game.MainProgress.value = it})
+
+
+                            val apkFilePath = "$externalFilesDir/${game.game.ReleaseName}/${game.game.ReleaseName}"  //${game.game.PackageName}.apk"
+                            for (file in File(apkFilePath).listFiles()) {
+                                if (file.name.endsWith(".apk")) {
+                                    println("Starting apk install:" + file.path)
+                                    val apkUri = FileProvider.getUriForFile(context, ".fileprovider", file)
+                                    val intent = Intent(Intent.ACTION_VIEW).apply {setDataAndType(apkUri, "application/vnd.android.package-archive")
+                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                    }
+                                    startActivity(context, intent, null)
+                                }
+                            }
+
                             val zipDir = File("$externalFilesDir/$gamehash/")
                             //if (zipDir.exists()) {extractDir.deleteRecursively()}
                         }
-
-                        val apkFilePath = "$externalFilesDir/${game.game.ReleaseName}/${game.game.ReleaseName}/${game.game.PackageName}.apk"
-                        println(apkFilePath)
-                        val apkfile = File(apkFilePath)
-                        println("afilepk : ${apkfile.exists()}")
-                        val apkUri = FileProvider.getUriForFile(context, ".fileprovider", apkfile)
-
-                        val intent = Intent(Intent.ACTION_VIEW).apply {setDataAndType(apkUri, "application/vnd.android.package-archive")
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
-                        }
-                        startActivity(context, intent, null)
-
-                        val movfile = File("$externalFilesDir/${game.game.ReleaseName}/${game.game.ReleaseName}/${game.game.PackageName}")
-                        val destfile = File("/storage/emulated/0/Android/obb/${game.game.PackageName}/")
-
-                        movfile.copyRecursively(destfile)
-
                         break
-
-
                     }
 
                     delay(10)
                 }
-                //val sourcePath = File("C:/Users/sampleuser/Downloads/test.txt")
-                //val targetPath = File("C:/Users/sampleuser/Documents/test.txt")
-
-
-
                 game.IsClosing.value = true
             }
 
@@ -208,8 +234,6 @@ fun Startinstall(context: Context, gamelist:MutableList<QueueGame>) {
                     delay(1)
 
                 }
-
-                println("CANCELLING EVERYTHING ON DOWNLOAD COROUTINE")
 
                 //CLEANUP
                 if (File("$externalFilesDir/$gamehash/").exists()) {
@@ -224,29 +248,34 @@ fun Startinstall(context: Context, gamelist:MutableList<QueueGame>) {
                 if (!gamelist.isEmpty()) {Startinstall(context, gamelist)}
                 cancel()
             }
-            //increment({gamelist[0].MainProgress.value = it})
-            //if (!gamelist[0].MainProgress.value.isNaN()) { gamelist.removeAt(0)break }
-            //while ((gamelist[0].MainProgress.value ?: 1.0F) != 1.0F) { delay(10) }
+
         }
     }
 }
 
-fun increment(increment: (Float) -> Unit) {
-    val startTime = System.currentTimeMillis()
-    val targetTime = 60000 // 1 minute in milliseconds
-    fun calculateIncrementValue(elapsedTime: Long): Float {
-        val progress = elapsedTime.toFloat() / targetTime.toFloat()
-        return progress
-    }
-    GlobalScope.launch() {
-        while (System.currentTimeMillis() - startTime < targetTime) {
-            val elapsedTime = System.currentTimeMillis() - startTime
-            val incrementValue = calculateIncrementValue(elapsedTime)
-            increment(incrementValue)
-            Thread.sleep(1)
-        }
-        increment(1.0F)
-    }
-}
 
-//fun gameInList(Queuelist: MutableList<QeueGame>, game: Game)
+fun moveDirectory(sourceDirectory: File, targetDirectory: File, progressCallback: (Float) -> Unit) {
+    val sourceFiles = sourceDirectory.listFiles() ?: return
+    val totalFiles = sourceFiles.size
+
+    var processedFiles = 0
+
+    fun moveFilesRecursive(sourceDirectory:File, targetDirectory: File) {
+        val sourceFiless = sourceDirectory.listFiles() ?: return
+        for (file in sourceFiless) {
+            if (file.isDirectory) {
+                val newTargetDirectory = File(targetDirectory, file.name)
+                newTargetDirectory.mkdir()
+                moveFilesRecursive(file, newTargetDirectory)
+            } else {
+                file.copyTo(File(targetDirectory, file.name))
+                processedFiles++
+                val progress = (processedFiles.toDouble() / totalFiles.toDouble()).toFloat()
+                progressCallback(progress)
+            }
+        }
+    }
+
+    moveFilesRecursive(sourceDirectory, targetDirectory)
+
+}

@@ -3,6 +3,7 @@ package com.lex.vrpquest
 
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.util.DisplayMetrics
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -35,6 +36,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
 import rikka.shizuku.Shizuku
 import java.io.File
 
@@ -65,11 +67,16 @@ class MainActivity : ComponentActivity() {
             //val res = File("/storage/emulated/0/Android/obb/TESTTT").mkdirs()
             //println("OBBTEST: $res")
 
-            var Page by remember { mutableStateOf(2) } //2
+            var Page by remember { mutableStateOf(intent.getIntExtra("page", 2)) }
+
             var GameInfo by remember { mutableStateOf<Game?>(null) }
 
             var Gamelist:MutableList<Game> = remember { mutableStateListOf() }
             var Queuelist:MutableList<QueueGame> = remember { mutableStateListOf() }
+
+            if (Page != 2) { //do not reinstall metadata just parse it when the settings page is loaded not main
+                Gamelist = SortGameList(applicationContext, {})
+            }
 
             var IsQueuelistEmpty by remember { mutableStateOf(false) }
             var IsShizukuConnected by remember { mutableStateOf(Shizuku.pingBinder() && checkPermission(0)) }    // either shizuku doesnt exist or the app doesnt have permission

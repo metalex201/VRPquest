@@ -1,12 +1,10 @@
 package com.lex.vrpquest
 
 import android.content.pm.PackageManager
-import android.os.ParcelFileDescriptor
-import android.os.RemoteException
+import moe.shizuku.server.IShizukuService
 import rikka.shizuku.Shizuku
-import rikka.shizuku.ShizukuRemoteProcess
-import java.io.BufferedInputStream
-import java.io.ByteArrayOutputStream
+import java.io.BufferedReader
+import java.io.InputStreamReader
 
 fun onRequestPermissionsResult(requestCode: Int, grantResult: Int) {
     val granted = grantResult == PackageManager.PERMISSION_GRANTED
@@ -39,7 +37,24 @@ fun checkPermission(code: Int): Boolean {
     }
 }
 
-fun IsShizukuConnected():Boolean {
+fun IsShizukuGranted():Boolean {
     return (Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED)
+
 }
+
+fun ShizAdbCommand(command:String):String {
+    val command = ""
+    val process = IShizukuService.Stub.asInterface(Shizuku.getBinder()).newProcess(arrayOf("sh","-c",command), null, null)
+
+    val inputStream = process.inputStream.use { it }
+    val stringBuilder = StringBuilder()
+
+    // 读取执行结果
+    val inputStreamReader = process.inputStream
+    inputStreamReader.close()
+    process.waitFor()
+    return stringBuilder.toString()
+
+}
+private data class ShellResult(val resultCode: Int, val out: String)
 

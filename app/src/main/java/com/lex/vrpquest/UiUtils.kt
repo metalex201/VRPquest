@@ -1,6 +1,9 @@
 package com.lex.vrpquest
 
 import android.content.ContentValues.TAG
+import android.content.Context
+import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
@@ -33,6 +36,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
@@ -139,7 +144,41 @@ fun CircleButton(
     }
 }
 
+@Composable
+fun settingsText(text:String) {
+    // Box for Shizuku is not running message
+    Box(modifier = Modifier
+        .padding(bottom = 20.dp)
+        .clip(RoundedCornerShape(50.dp))
+        .fillMaxWidth()
+        .background(color = CustomColorScheme.surface)
+    ) {
+        Text(modifier = Modifier.padding(25.dp),
+            text = text)
+    }
+}
 
+@Composable
+fun SettingsTextButton(text:String, buttontext:String, onClick: () -> Unit) {
+    Box(modifier = Modifier
+        .padding(bottom = 20.dp)
+        .clip(RoundedCornerShape(50.dp))
+        .fillMaxWidth()
+        .background(color = CustomColorScheme.surface)
+    ) {
+        Row(modifier = Modifier.padding(25.dp)) {
+            Text(text = text, Modifier.align(Alignment.CenterVertically).weight(1f))
+            Spacer(modifier = Modifier.fillMaxWidth().weight(0.1f))
+            Button(onClick = onClick,
+                modifier = Modifier.align(Alignment.CenterVertically).weight(0.5f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = CustomColorScheme.tertiary,
+                    contentColor = CustomColorScheme.onSurface),) {
+                Text(text = buttontext)
+            }
+        }
+    }
+}
 
 @Composable
 fun GetGameBitmap(thumbnail: String): ImageBitmap {
@@ -157,4 +196,21 @@ fun RoundByteValue(bytes:Int) : String {
     } else {
         return (bytes / 1000).toString() + " GB"
     }
+}
+
+fun isPackageInstalled(context: Context, packageName: String): Boolean {
+    return try {
+        context.packageManager.getPackageInfo(packageName, 0)
+        true
+    } catch (e: PackageManager.NameNotFoundException) {
+        false
+    }
+}
+
+fun isPermissionAllowed(context: Context, permission:String): Boolean {
+    val packageInfo: PackageInfo = context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_PERMISSIONS)
+    val list: List<String>  = packageInfo.requestedPermissions!!.filterIndexed { index, permission ->
+        (packageInfo.requestedPermissionsFlags[index] and PackageInfo.REQUESTED_PERMISSION_GRANTED) != 0
+    }
+    if (list.contains(permission)) { return true } else {return false}
 }
