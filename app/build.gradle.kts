@@ -49,12 +49,18 @@ android {
 }
 
 dependencies {
-
+    implementation("commons-net:commons-net:3.9.0")
     implementation("com.github.omicronapps:7-Zip-JBinding-4Android:Release-16.02-2.02")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("androidx.datastore:datastore-core-android:1.1.1")
+    implementation("androidx.datastore:datastore-preferences-core-jvm:1.1.1")
+    implementation("androidx.datastore:datastore-preferences-core:1.1.1")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation(libs.androidx.runner)
     implementation(libs.androidx.espresso.core)
     implementation(libs.androidx.fragment.ktx)
+    implementation(libs.androidx.datastore.core.android)
+    implementation(libs.firebase.crashlytics.buildtools)
     //implementation(files("C:\\Users\\Metalex\\AndroidStudioProjects\\VRPquest\\app\\libs\\libp7zip-release.aar"))
     val shizuku_version = "13.1.5"
     implementation("dev.rikka.shizuku:api:$shizuku_version")

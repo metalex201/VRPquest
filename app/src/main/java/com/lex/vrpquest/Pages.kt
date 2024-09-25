@@ -2,22 +2,16 @@ package com.lex.vrpquest
 
 import android.app.Activity
 import android.content.ContentValues.TAG
-import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
-import android.os.Environment
 import android.provider.Settings
+import android.provider.Settings.Global
 import android.util.Log
-import androidx.activity.result.ActivityResult
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,28 +45,28 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.app.ActivityCompat.finishAffinity
+import androidx.core.app.ActivityCompat
 import androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale
-import androidx.core.app.ActivityCompat.startActivityForResult
 import androidx.core.content.ContextCompat.startActivity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import androidx.datastore.core.DataStore
+import com.lex.vrpquest.ui.theme.testfpt
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import rikka.shizuku.Shizuku
 import java.util.Locale
+import java.util.prefs.Preferences
+
 
 @Composable
 fun MainPage(Gamelist: MutableList<Game>, searchText: String, onClick: (Game) -> Unit) {
@@ -96,12 +90,16 @@ fun MainPage(Gamelist: MutableList<Game>, searchText: String, onClick: (Game) ->
                         bitmap = GetGameBitmap(game.Thumbnail),
                         contentDescription = "")
                     Spacer(modifier = Modifier.size(10.dp))
-                    Text(text = game.GameName,
+                    Text(
+                        text = game.GameName,
                         modifier = Modifier.padding(20.dp, vertical = 0.dp),
-                        maxLines = 1, overflow = TextOverflow.Ellipsis,)
-                    Text(text = RoundByteValue(game.Size),
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = RoundByteValue(game.Size),
                         modifier = Modifier.padding(20.dp, vertical = 0.dp),
-                        maxLines = 1, overflow = TextOverflow.Ellipsis,)
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }
@@ -169,12 +167,7 @@ fun QueuePage(Queuelist: MutableList<QueueGame>) {
                 }
                 if(IsDropDown) {
                     Spacer(modifier = Modifier.size(10.dp))
-                    Box(modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(50.dp, 0.dp)
-                        .height(3.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(color = CustomColorScheme.background))
+                    RoundDivider()
                     Spacer(modifier = Modifier.size(10.dp))
                     Box(modifier = Modifier
                         .fillMaxWidth()
@@ -183,6 +176,8 @@ fun QueuePage(Queuelist: MutableList<QueueGame>) {
                             0 -> { Text(text = "Downloading.") }
                             1 -> { Text(text = "Extracting..") }
                             2 -> { Text(text = "Moving obb.") }
+                            3 -> { Text(text = "Downloading obb...") }
+                            4 -> { Text(text = "Downloading apk") }
                         }
                     }
 
@@ -220,6 +215,7 @@ fun SettingsPage() {
         .fillMaxWidth()
         .padding(10.dp)) {
 
+        //SHIZUKU STATE INDICATOR
         if(ShizukuExists) {
             if (Shizuku.pingBinder()) { //shizuku is running
                 if (!IsShizukuGranted()) {
@@ -235,58 +231,104 @@ fun SettingsPage() {
             settingsText("Shizuku needs to be installed")
         }
 
+        //SHIZUKU PAIR INSTRUCTIONS
         if (!(ShizukuExists && Shizuku.pingBinder() && IsShizukuGranted())) {
-            settingsText("This application can use ADB commands for installing games in the background without any user interaction and a small number of applications require it for proper installation, " +
-                    "for this to be possible we use an app called shizuku, theres currently two version that can be used, the Original Shizuku, " +
-                    "and a modified version made for quest named shizuku4quest, both can be found in the VRP library")
+            settingsGroup() {
+                settingsText("This application can use ADB commands for installing games in the background without any user interaction and a small number of applications require it for proper installation, " +
+                        "for this to be possible we use an app called shizuku, theres currently two version that can be used, the Original Shizuku, " +
+                        "and a modified version made for quest named shizuku4quest, both can be found in the VRP library")
 
-            settingsText("Shizuku4quest setup:\n\n First install Shizuku4quest from the library, " +
-                    "then open the app and follow the instructions in the app, after you finished whit the setup, make sure to allow VRPquest to use Shizuku")
+                RoundDivider()
 
-            SettingsTextButton("Original Shizuku setup:\n\n First install Shizuku from the library, " +
-                    "then open the app tap on pair and follow these instructions on setting up wireless debugging:\n \n" +
+                settingsText("Shizuku4quest setup:\n\n First install Shizuku4quest from the library, " +
+                        "then open the app and follow the instructions in the app, after you finished whit the setup, make sure to allow VRPquest to use Shizuku")
 
-                    "(Incase developer options isn't enabled then the device info settings will be opened first, scroll down and tap on build number 7 times, then open developer settins again) \n \n" +
+                RoundDivider()
 
-                    "1. Open Developer Settings on your device. \n" +
-                    "2. Find and tap on 'Wireless Debugging'.\n" +
-                    "3. Tap the left side of 'Wireless Debugging' to access hidden settings.\n" +
-                    "4. Select 'Pair device with pairing code'.\n" +
-                    "5. Follow the on-screen instructions to complete pairing.\n",
+                SettingsTextButton("Original Shizuku setup:\n\n First install Shizuku from the library, " +
+                        "then open the app tap on pair and follow these instructions on setting up wireless debugging:\n \n" +
 
-                "Open Developer Settings"
-            ) {
-                GlobalScope.launch {
-                    var intent = Intent("com.android.settings.APPLICATION_DEVELOPMENT_SETTINGS")
+                        "(Incase developer options isn't enabled then the device info settings will be opened first, scroll down and tap on build number 7 times, then open developer settins again) \n \n" +
+
+                        "1. Open Developer Settings on your device. \n" +
+                        "2. Find and tap on 'Wireless Debugging'.\n" +
+                        "3. Tap the left side of 'Wireless Debugging' to access hidden settings.\n" +
+                        "4. Select 'Pair device with pairing code'.\n" +
+                        "5. Follow the on-screen instructions to complete pairing.\n",
+
+                    "Open Developer Settings"
+                ) {
+                    GlobalScope.launch {
+                        var intent = Intent("com.android.settings.APPLICATION_DEVELOPMENT_SETTINGS")
 
 
-                    if (Settings.Secure.getInt(context.contentResolver, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 0 ) {
-                        intent = Intent().setClassName(
-                            "com.android.settings",
-                            "com.android.settings.Settings\$MyDeviceInfoActivity"
+                        if (Settings.Secure.getInt(context.contentResolver, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 0 ) {
+                            intent = Intent().setClassName(
+                                "com.android.settings",
+                                "com.android.settings.Settings\$MyDeviceInfoActivity"
+                            )
+                        }
+
+                        GlobalScope.launch { activity.finishAndRemoveTask() }
+
+                        delay(200)
+
+
+                        intent.setFlags(
+                            Intent.FLAG_ACTIVITY_NEW_TASK or
+                                    Intent.FLAG_ACTIVITY_NEW_DOCUMENT or
+                                    Intent.FLAG_ACTIVITY_MULTIPLE_TASK
                         )
+                        context.startActivity(intent)
+                        delay(200)
+
+                        val intentt = Intent(context, MainActivity::class.java)
+                        intentt.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        intentt.putExtra("page", 3)
+                        context.startActivity(intentt)
                     }
+                }
+                //group end
+            }
+        }
 
-                    GlobalScope.launch { activity.finishAndRemoveTask() }
+        //PRIVATE MIRROR SERVER
+        settingsGroup() {
+            var username by remember { mutableStateOf(SettingGetSting(context, "username") ?: "") }
+            var password by remember { mutableStateOf(SettingGetSting(context, "pass") ?: "") }
+            var host by remember { mutableStateOf(SettingGetSting(context, "host") ?: "") }
 
-                    delay(200)
+            var IsFTP by remember { mutableStateOf(SettingGetBoolean(context, "isPrivateFtp") ?: false) }
 
+            settingsText("This application supports paid private FTP mirrors, an advantage of this is that the files hosted on ftp are not compressed," +
+                    " so you only need to have enough space for the game instead of 2x the storage space for installing the archives and unpacking them from the main VRP server")
 
-                    intent.setFlags(
-                        Intent.FLAG_ACTIVITY_NEW_TASK or
-                                Intent.FLAG_ACTIVITY_NEW_DOCUMENT or
-                                Intent.FLAG_ACTIVITY_MULTIPLE_TASK
-                    )
-                    context.startActivity(intent)
-                    delay(200)
+            SettingsTextField("USERNAME", username, "USERNAME", {username = it})
+            SettingsTextField("PASSWORD", password, "PASSWORD", {password = it})
+            SettingsTextField("HOST", host, "HOST", {host = it})
+            if (IsFTP) {
+                SettingsTextButton("Disconnect from the FTP server", "DISCONNECT", {
+                    SettingStoreBoolean(context, "isPrivateFtp", false)
+                    SettingStoreSting(context, "username", "username")
+                    SettingStoreSting(context, "pass", "password")
+                    SettingStoreSting(context, "host", "host")
 
-                    val intentt = Intent(context, MainActivity::class.java)
-                    intentt.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    intentt.putExtra("page", 3)
-                    context.startActivity(intentt)
+                })
+            } else {
+                SettingsTextButton("if a connection can be made, it will be saved", "CONNECT") {
+                    GlobalScope.launch {
+                        IsFTP = testfpt(username, password, host)
+                        if (IsFTP == true) {
+                            SettingStoreBoolean(context, "isPrivateFtp", true)
+                            SettingStoreSting(context, "username", username)
+                            SettingStoreSting(context, "pass", password)
+                            SettingStoreSting(context, "host", host)
+                        }
+                    }
                 }
             }
         }
+
     }
 }
 
@@ -316,13 +358,13 @@ fun gameInfoPage(game:Game?, OnInstall: (Game) -> Unit, OnClose: () -> Unit) {
                     Spacer(modifier = Modifier.size(10.dp))
                     Text(text = "name: " + game.GameName)
                     Spacer(modifier = Modifier.size(10.dp))
-                    Text(text = "release Name: " + game.ReleaseName,)
+                    Text(text = "release Name: " + game.ReleaseName)
                     Spacer(modifier = Modifier.size(10.dp))
-                    Text(text = "Version Code: " + game.VersionCode,)
+                    Text(text = "Version Code: " + game.VersionCode)
                     Spacer(modifier = Modifier.size(10.dp))
-                    Text(text = "Last Updated: " + game.LastUpdated,)
+                    Text(text = "Last Updated: " + game.LastUpdated)
                     Spacer(modifier = Modifier.size(10.dp))
-                    Text(text = "size: " + RoundByteValue(game.Size),)
+                    Text(text = "size: " + RoundByteValue(game.Size))
                     Spacer(modifier = Modifier.size(10.dp))
 
 
@@ -330,34 +372,43 @@ fun gameInfoPage(game:Game?, OnInstall: (Game) -> Unit, OnClose: () -> Unit) {
                     println(game.Size * 2)
                     Row(Modifier.padding(10.dp, 0.dp)) {
                         if (game.Size * 2 < freespace / 1000000) {
-                            Button(modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(0.1F)
-                                .height(50.dp),
+                            Button(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(0.1F)
+                                    .height(50.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = CustomColorScheme.tertiary,
-                                    contentColor = CustomColorScheme.onSurface),
-                                onClick = {OnInstall(game)}, ) { Text(text = "INSTALL") }
+                                    contentColor = CustomColorScheme.onSurface
+                                ),
+                                onClick = { OnInstall(game) },
+                            ) { Text(text = "INSTALL") }
                         } else {
-                            Button(modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(0.1F)
-                                .height(50.dp),
+                            Button(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(0.1F)
+                                    .height(50.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = CustomColorScheme.error,
-                                    contentColor = CustomColorScheme.onSurface),
-                                onClick = {}, ) { Text(text = "NO SPACE") }
+                                    contentColor = CustomColorScheme.onSurface
+                                ),
+                                onClick = {},
+                            ) { Text(text = "NO SPACE") }
                         }
 
                         Spacer(modifier = Modifier.size(10.dp))
-                        Button(modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(0.1F)
-                            .height(50.dp),
+                        Button(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(0.1F)
+                                .height(50.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = CustomColorScheme.error,
-                                contentColor = CustomColorScheme.onSurface),
-                            onClick = {OnClose()}, ) { Text(text = "CLOSE") }
+                                contentColor = CustomColorScheme.onSurface
+                            ),
+                            onClick = { OnClose() },
+                        ) { Text(text = "CLOSE") }
 
                     }
                     Spacer(modifier = Modifier.size(10.dp))
@@ -372,13 +423,22 @@ fun gameInfoPage(game:Game?, OnInstall: (Game) -> Unit, OnClose: () -> Unit) {
 fun LoadPage(Page: (Int) -> Unit, metadata: (ArrayList<Game>) -> Unit) {
     val context = LocalContext.current
 
+    var username by remember { mutableStateOf(SettingGetSting(context, "username") ?: "") }
+    var password by remember { mutableStateOf(SettingGetSting(context, "pass") ?: "") }
+    var host by remember { mutableStateOf(SettingGetSting(context, "host") ?: "") }
+
+    var IsFTP by remember { mutableStateOf(SettingGetBoolean(context, "isPrivateFtp") ?: false) }
+
     var progress by remember { mutableStateOf(0f) }
     var isRun by remember { mutableStateOf(false) }
     var state by remember { mutableStateOf(0) }
     var text by remember { mutableStateOf("") }
 
     if (!isRun) {
-        MetadataInitialize(context, {state = it }, {progress = it}, {metadata(it)})
+        if (IsFTP) {
+            MetadataInitializeFTP(context, {state = it }, {progress = it}, {metadata(it)}) }
+        else {
+            MetadataInitialize(context, {state = it }, {progress = it}, {metadata(it)}) }
         isRun = true
     }
 
@@ -440,13 +500,16 @@ fun PermissionPage() {
 
 
     fun grant() {
-        shouldShowRequestPermissionRationale(activity, Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
         if (!InstallApkPerm) {
             val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
                 .setData(Uri.parse(String.format("package:%s", context.packageName)))
             context.startActivity(intent)
         }
-        //startActivityForResult()
+        if(!FileAccessPerm) {
+            ActivityCompat.requestPermissions(activity,
+                arrayOf("android.permission.WRITE_EXTERNAL_STORAGE"),
+                23)
+        }
     }
     if (!(InstallApkPerm && FileAccessPerm)) {
         Box(modifier = Modifier
@@ -469,29 +532,35 @@ fun PermissionPage() {
                             text = "- INSTALL APK")
                     Text(modifier = Modifier.padding(20.dp,0.dp),
                         color = if (FileAccessPerm) CustomColorScheme.tertiary else CustomColorScheme.error,
-                        text = "- FILE ACCESS \n (can only be allowed through settings)")
+                        text = "- FILE ACCESS")
 
                     Spacer(modifier = Modifier.size(20.dp))
                     Row() {
-                        if(!InstallApkPerm) {
-                            Button(modifier = Modifier
+
+                            Button(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(0.1F)
+                                    .height(50.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = CustomColorScheme.tertiary,
+                                    contentColor = CustomColorScheme.onSurface
+                                ),
+                                onClick = { grant() },
+                            ) { Text(text = "GRANT") }
+                            Spacer(modifier = Modifier.size(10.dp))
+
+                        Button(
+                            modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(0.1F)
                                 .height(50.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = CustomColorScheme.tertiary,
-                                    contentColor = CustomColorScheme.onSurface),
-                                onClick = {grant()}, ) { Text(text = "GRANT") }
-                            Spacer(modifier = Modifier.size(10.dp))
-                        }
-                        Button(modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(0.1F)
-                            .height(50.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = CustomColorScheme.error,
-                                contentColor = CustomColorScheme.onSurface),
-                            onClick = {System.out.close() }, ) { Text(text = "EXIT") }
+                                contentColor = CustomColorScheme.onSurface
+                            ),
+                            onClick = { System.out.close() },
+                        ) { Text(text = "EXIT") }
                     }
                 }
             }

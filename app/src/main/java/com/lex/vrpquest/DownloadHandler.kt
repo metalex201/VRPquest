@@ -6,8 +6,15 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.toArgb
+import com.lex.vrpquest.ui.theme.FTPconnect
+import com.lex.vrpquest.ui.theme.FTPdownloadFile
+import com.lex.vrpquest.ui.theme.FTPdownloadRecursive
+import com.lex.vrpquest.ui.theme.testfpt
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -17,6 +24,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okio.buffer
 import okio.sink
+import org.apache.commons.net.ftp.FTP
 import org.json.JSONObject
 import java.io.File
 import java.net.URL
@@ -41,7 +49,7 @@ class Game(
 @OptIn(ExperimentalEncodingApi::class)
 fun MetadataInitialize(context:Context, state: (Int) -> Unit, progress: (Float) -> Unit, metadata: (ArrayList<Game>) -> Unit) {
     GlobalScope.launch {
-         if (1 == 0) {
+         if (1 == 1) {
             Log.i(context.applicationInfo.name, "Downloading vrp-public.json")
             val externalFilesDir = context.getExternalFilesDir(null)?.absolutePath.toString()
             if (File("$externalFilesDir/meta.7z").exists()) { File("$externalFilesDir/meta.7z").delete()}
@@ -61,6 +69,45 @@ fun MetadataInitialize(context:Context, state: (Int) -> Unit, progress: (Float) 
         metadata(SortGameList(context, { progress(it) }))
         state(3)
         //zip(File("$externalFilesDir/meta"), File("$externalFilesDir/meta.zip"))
+    }
+}
+@OptIn(ExperimentalEncodingApi::class)
+fun MetadataInitializeFTP(context:Context, state: (Int) -> Unit, progress: (Float) -> Unit, metadata: (ArrayList<Game>) -> Unit) {
+    GlobalScope.launch {
+
+        Log.i(context.applicationInfo.name, "Downloading vrp-public.json")
+        val externalFilesDir = context.getExternalFilesDir(null)?.absolutePath.toString()
+        if (File("$externalFilesDir/meta.7z").exists()) { File("$externalFilesDir/meta.7z").delete()}
+        if (File("$externalFilesDir/meta").exists()) { File("$externalFilesDir/meta").deleteRecursively()}
+        Log.i(context.applicationInfo.name, "Downloading meta")
+
+        var username = SettingGetSting(context, "username") ?: ""
+        var password = SettingGetSting(context, "pass") ?: ""
+        var host = SettingGetSting(context, "host") ?: ""
+
+        val IsFTP = testfpt(username, password, host)
+        val client = FTPconnect(username, password, host) ?: return@launch
+
+
+        state(0)
+
+        //FTPdownloadFile(client, "$externalFilesDir/meta/VRP-GameList.txt", "/Quest Games/VRP-GameList.txt")
+        //FTPdownloadRecursive(client, "$externalFilesDir/test", "/Quest Games/10 Seconds v3+1.0 -VRP")
+        //downloadFile("$baseUri" + "meta.7z", "$externalFilesDir/meta.7z","rclone/v69", { progress(it) }).toString()
+        //zip(File("$externalFilesDir/meta"), File("$externalFilesDir/meta.zip"))
+
+        FTPdownloadFile(client, "$externalFilesDir/meta.7z", "/Quest Games/meta.7z", { progress(it) })
+
+        state(1)
+        SevenZipExtract("$externalFilesDir/meta.7z", "$externalFilesDir/meta/", true, "", { progress(it) });
+
+        delay(100)
+
+        state(2)
+        metadata(SortGameList(context, { progress(it) }))
+
+        state(3)
+
     }
 }
 

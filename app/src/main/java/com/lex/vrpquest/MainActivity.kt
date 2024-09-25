@@ -1,9 +1,11 @@
 package com.lex.vrpquest
 
 
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.provider.Settings.Global
 import android.util.DisplayMetrics
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -37,9 +39,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
+import androidx.datastore.core.DataStore
 import rikka.shizuku.Shizuku
 import java.io.File
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.preferencesDataStore
+import com.lex.vrpquest.ui.theme.testfpt
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 var CustomColorScheme =
     darkColorScheme(
@@ -55,17 +66,28 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+
         //Shizuku.addRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
         //showNotification(applicationContext, "TEST NOTIF")
         //checkPermission(0)
         //enableEdgeToEdge()
 
 
+        //settingsTest
+        //SettingStoreSting(applicationContext, "test", "TESTTESTTEST")
+        //println("SETTINGS STORE GET RESULT : " + SettingGetSting(applicationContext, "test"))
+        //SettingStoreBoolean(applicationContext, "test", true)
+        //println("SETTINGS STORE GET RESULT : " + SettingGetSting(applicationContext, "test"))
+        GlobalScope.launch { println("TESTFTP RESULT:" + testfpt("MTWMTGK80T72", "MKUSNAM63C96", "ganymede.whatbox.ca:11385")) }
         setContent {
             //OBB TEST
             //println("OBBTEST")
             //val res = File("/storage/emulated/0/Android/obb/TESTTT").mkdirs()
             //println("OBBTEST: $res")
+            //println(ShizAdbCommand("echo testt"))
+
+
 
             var Page by remember { mutableStateOf(intent.getIntExtra("page", 2)) }
 

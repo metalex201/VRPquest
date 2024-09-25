@@ -12,6 +12,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -146,9 +147,8 @@ fun CircleButton(
 
 @Composable
 fun settingsText(text:String) {
-    // Box for Shizuku is not running message
+    // Box for settings element
     Box(modifier = Modifier
-        .padding(bottom = 20.dp)
         .clip(RoundedCornerShape(50.dp))
         .fillMaxWidth()
         .background(color = CustomColorScheme.surface)
@@ -159,24 +159,72 @@ fun settingsText(text:String) {
 }
 
 @Composable
-fun SettingsTextButton(text:String, buttontext:String, onClick: () -> Unit) {
+fun settingsGroup(content: @Composable () -> Unit) {
+    // Box for Shizuku is not running message
+    Spacer(modifier = Modifier.size(20.dp))
     Box(modifier = Modifier
         .padding(bottom = 20.dp)
         .clip(RoundedCornerShape(50.dp))
         .fillMaxWidth()
         .background(color = CustomColorScheme.surface)
-    ) {
-        Row(modifier = Modifier.padding(25.dp)) {
-            Text(text = text, Modifier.align(Alignment.CenterVertically).weight(1f))
-            Spacer(modifier = Modifier.fillMaxWidth().weight(0.1f))
-            Button(onClick = onClick,
-                modifier = Modifier.align(Alignment.CenterVertically).weight(0.5f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = CustomColorScheme.tertiary,
-                    contentColor = CustomColorScheme.onSurface),) {
-                Text(text = buttontext)
-            }
+    ) { Column() {content()} }
+}
+
+@Composable
+fun SettingsTextButton(text:String, buttontext:String, onClick: () -> Unit) {
+    Row(modifier = Modifier.padding(25.dp)) {
+        Text(text = text,
+            Modifier
+                .align(Alignment.CenterVertically)
+                .weight(1f))
+        Spacer(modifier = Modifier
+            .fillMaxWidth()
+            .weight(0.1f))
+        Button(onClick = onClick,
+            modifier = Modifier
+                .align(Alignment.CenterVertically)
+                .weight(0.5f),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = CustomColorScheme.tertiary,
+                contentColor = CustomColorScheme.onSurface),) {
+            Text(text = buttontext)
         }
+    }
+}
+@Composable
+fun SettingsTextField(text:String, value: String, placeholder:String, onChange: (String) -> Unit) {
+    Row(modifier = Modifier.padding(25.dp, 10.dp)) {
+        //Text(text = text, Modifier.align(Alignment.CenterVertically).weight(0.8f))
+        //Spacer(modifier = Modifier.fillMaxWidth().weight(0.1f))
+        Box(modifier = Modifier
+            .align(Alignment.CenterVertically)
+            .clip(RoundedCornerShape(50.dp))
+            .fillMaxWidth()
+            .background(color = CustomColorScheme.tertiary)
+        ) {
+            TextField(
+                modifier = Modifier.align(Alignment.CenterStart),
+                value = value,
+                onValueChange = onChange,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    cursorColor = Color.Transparent),
+                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Text),
+                maxLines = 1,
+                textStyle = TextStyle(textAlign = TextAlign.Start),
+                placeholder = {
+                    Text(text = placeholder,
+                        Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight()
+                            .align(Alignment.Center), color = CustomColorScheme.onSurface)
+                }
+            )
+        }
+
     }
 }
 
@@ -189,6 +237,16 @@ fun GetGameBitmap(thumbnail: String): ImageBitmap {
         EmptyThumb.eraseColor(CustomColorScheme.background.toArgb())
         return EmptyThumb.asImageBitmap()
     }
+}
+
+@Composable
+fun RoundDivider() {
+    Box(modifier = Modifier
+        .fillMaxWidth()
+        .padding(50.dp, 0.dp)
+        .height(3.dp)
+        .clip(RoundedCornerShape(10.dp))
+        .background(color = CustomColorScheme.background))
 }
 
 fun RoundByteValue(bytes:Int) : String {

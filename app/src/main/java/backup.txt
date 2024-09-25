@@ -452,3 +452,19 @@ fun increment(increment: (Float) -> Unit) {
 
 //val sourcePath = File("C:/Users/sampleuser/Downloads/test.txt")
 //val targetPath = File("C:/Users/sampleuser/Documents/test.txt")
+
+
+
+//Create an InputStream to the File Data and use FileOutputStream to write it
+//val inputStream = client.retrieveFileStream(fileName)
+
+
+//client.completePendingCommand()
+//IOUtils.copy(inputStream, fileOutputStream)
+
+//IOUtils.closeQuietly(fileOutputStream)
+//IOUtils.closeQuietly(inputStream)
+
+//val fos = FileOutputStream(localDir)
+//val success = client.retrieveFile(fileName, fos);
+//client.addProtocolCommandListener()
