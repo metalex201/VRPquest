@@ -79,7 +79,7 @@ class MainActivity : ComponentActivity() {
         //println("SETTINGS STORE GET RESULT : " + SettingGetSting(applicationContext, "test"))
         //SettingStoreBoolean(applicationContext, "test", true)
         //println("SETTINGS STORE GET RESULT : " + SettingGetSting(applicationContext, "test"))
-        GlobalScope.launch { println("TESTFTP RESULT:" + testfpt("MTWMTGK80T72", "MKUSNAM63C96", "ganymede.whatbox.ca:11385")) }
+
         setContent {
             //OBB TEST
             //println("OBBTEST")

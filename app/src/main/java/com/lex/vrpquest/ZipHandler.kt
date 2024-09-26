@@ -175,7 +175,7 @@ class ArchiveOpenVolumeCallback : IArchiveOpenVolumeCallback {
 
 
 @Throws(ExtractionException::class)
-public fun SevenZipExtract(archive: String,
+fun SevenZipExtract(archive: String,
                      outputDirectory: String,
                      IsSingularZip: Boolean,
                      pass: String,
@@ -198,9 +198,6 @@ public fun SevenZipExtract(archive: String,
         //extractArchiveSingle
         val randomAccessFile: RandomAccessFile
         val inArchive: IInArchive
-
-
-
 
         try {
             randomAccessFile = RandomAccessFile(archive, "r")
