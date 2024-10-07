@@ -1,18 +1,13 @@
-package com.lex.vrpquest
+package com.lex.vrpquest.Utils
 
-import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.util.Log
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,24 +18,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -57,15 +44,13 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.lex.vrpquest.CustomColorScheme
 import java.io.File
-import java.util.Locale
 
 @Composable
 fun TextFieldElement(modifier: Modifier, value: String, onValueChange: (String) -> Unit, placeholder: String) {
@@ -110,6 +95,31 @@ fun SearchBar(modifier: Modifier, value: String, onValueChange: (String) -> Unit
 
     }
 }
+@Composable
+fun FullText(value: String) {
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .background(CustomColorScheme.background)) {
+        Text(
+            modifier = Modifier
+                .align(Alignment.Center),
+            text = value, textAlign = TextAlign.Center)
+    }
+}
+
+@Composable
+fun TextBar(modifier: Modifier, value: String) {
+    Box(modifier = modifier
+        .fillMaxSize()
+        .clip(CircleShape)
+        .background(CustomColorScheme.surface)) {
+        Text(
+            modifier = Modifier
+                .align(Alignment.Center),
+            text = value, textAlign = TextAlign.Center,)
+    }
+}
+
 @Composable
 fun CircleButton(
     modifier:Modifier = Modifier,
@@ -191,6 +201,36 @@ fun SettingsTextButton(text:String, buttontext:String, onClick: () -> Unit) {
         }
     }
 }
+
+@Composable
+fun SettingsTextSwitch(text:String, switchValue:Boolean, onClick: () -> Unit) {
+    Row(modifier = Modifier.padding(25.dp)) {
+        Text(text = text,
+            Modifier
+                .align(Alignment.CenterVertically)
+                .weight(1f),)
+        Spacer(modifier = Modifier
+            .fillMaxWidth()
+            .weight(0.1f))
+        Switch(switchValue, { onClick() },
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = CustomColorScheme.onSurface,
+                checkedTrackColor = CustomColorScheme.tertiary,
+                uncheckedThumbColor = CustomColorScheme.surface,
+                uncheckedTrackColor = CustomColorScheme.onSurface,
+                uncheckedBorderColor = CustomColorScheme.onSurface))
+    }
+}
+
+@Composable
+fun DatastoreTextSwitch(context: Context, text:String, id:String, defaultValue:Boolean = false) {
+    var value by remember { mutableStateOf(SettingGetBoolean(context, id) ?: defaultValue) }
+    SettingsTextSwitch(text, value) {
+        value = !value
+        SettingStoreBoolean(context, id, value)
+    }
+}
+
 @Composable
 fun SettingsTextField(text:String, value: String, placeholder:String, onChange: (String) -> Unit) {
     Row(modifier = Modifier.padding(25.dp, 10.dp)) {

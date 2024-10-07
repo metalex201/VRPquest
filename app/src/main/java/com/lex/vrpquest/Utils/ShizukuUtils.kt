@@ -1,14 +1,10 @@
-package com.lex.vrpquest
+package com.lex.vrpquest.Utils
 
 import android.content.pm.PackageManager
 import android.os.ParcelFileDescriptor
 import moe.shizuku.server.IShizukuService
 import rikka.shizuku.Shizuku
 import java.io.BufferedReader
-import java.io.FileInputStream
-import java.io.InputStream
-import java.io.InputStreamReader
-import java.io.Reader
 
 fun onRequestPermissionsResult(requestCode: Int, grantResult: Int) {
     val granted = grantResult == PackageManager.PERMISSION_GRANTED

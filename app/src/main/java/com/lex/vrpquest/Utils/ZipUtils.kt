@@ -1,7 +1,6 @@
-package com.lex.vrpquest
+package com.lex.vrpquest.Utils
 
-import android.content.ContentValues.TAG
-import android.util.Log
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import kotlinx.coroutines.GlobalScope
@@ -31,7 +30,6 @@ import java.io.OutputStream
 import java.io.RandomAccessFile
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
-import kotlin.math.log
 
 //======================================= SevenZipExtract =======================================
 
@@ -180,8 +178,8 @@ fun SevenZipExtract(archive: String,
                      IsSingularZip: Boolean,
                      pass: String,
                      progress: (Float) -> Unit,
-                     IsStopping: MutableState<Boolean> = mutableStateOf(false)
-) {
+                     IsStopping: MutableState<Boolean> = mutableStateOf(false))
+{
     //prepareOutputDirectory
     var outputDirectoryFile = File(outputDirectory)
     if (!outputDirectoryFile.exists()) {
@@ -248,59 +246,99 @@ fun SevenZipExtract(archive: String,
 
 class ZipUtil {
     val BUFFER_SIZE = 4096
-    public fun zip(listFiles: List<File>, destZipFile: File?) {
+    public fun zip(listFiles: List<File>, destZipFile: File?, customName: Pair<File, File> = Pair(File(""), File("")), progress: (Float) -> Unit) {
+        val fullsize = getSize(listFiles)
+        var tempSize:Long = 0
         val fileOutputStream = FileOutputStream(destZipFile)
         val zos = ZipOutputStream(fileOutputStream)
+
         for (file in listFiles) {
             if (file.isDirectory) {
-                zipDirectory(file, file.name, zos)
+                zipDirectory(file, file.name, zos) {
+                    tempSize += it
+                    progress((((tempSize) * 100L) / fullsize) / 100F)
+                }
             } else {
-                zipFile(file, zos)
+                var name = file.name
+                if (file == customName.first) {
+                    println("CUSTOMNAME SET PAIR FOUND")
+                    name = customName.second.name
+                }
+                zipFile(file, zos, {tempSize += it
+                    progress((((tempSize) * 100L) / fullsize) / 100F) }, name)
             }
         }
         zos.flush()
         zos.close()
     }
 
-    private fun zipDirectory(folder: File, parentFolder: String, zos: ZipOutputStream) {
+    private fun zipDirectory(folder: File, parentFolder: String, zos: ZipOutputStream, progress: (Long) -> Unit) {
         for (file in folder.listFiles()) {
             if (file.isDirectory) {
-                zipDirectory(file, parentFolder + File.separator + file.name, zos)
+                zipDirectory(file, parentFolder + File.separator + file.name, zos, progress)
                 continue
             }
             zos.putNextEntry(ZipEntry(parentFolder + File.separator + file.name))
+
+            var totalRead: Long = 0
+            var count: Long = 0
+
             val bis = BufferedInputStream(FileInputStream(file))
             val bytesIn = ByteArray(BUFFER_SIZE)
             var read = 0
+
             while ((bis.read(bytesIn).also { read = it }) != -1) {
                 zos.write(bytesIn, 0, read)
+                count++
+                totalRead += read
+                if (count % 100 == 0L) {
+                    progress(totalRead )
+                    totalRead = 0
+                }
             }
-            bis.close()
+
+            progress(totalRead)
             zos.closeEntry()
         }
     }
 
-    fun zipFile(file: File, zos: ZipOutputStream) {
-        zos.putNextEntry(ZipEntry(file.name))
+    private fun zipFile(file: File, zos: ZipOutputStream, progress: (Long) -> Unit, fileName:String = file.name) {
+        println(file.absolutePath)
+        var totalRead: Long = 0
+        var count: Long = 0
+
+        zos.putNextEntry(ZipEntry(fileName))
         val bis = BufferedInputStream(FileInputStream(file))
         val bytesIn = ByteArray(BUFFER_SIZE)
         var read = 0
         while ((bis.read(bytesIn).also { read = it }) != -1) {
             zos.write(bytesIn, 0, read)
+
+            count++
+            totalRead += read
+            if (count % 100 == 0L) {
+                progress(totalRead )
+                totalRead = 0
+            }
         }
+        progress(totalRead)
+
         zos.closeEntry()
     }
-}
 
-fun zip(folderToCompress: File, outputZip: File) {
-    runBlocking  {
-        val zipFile = outputZip
-        if (zipFile.exists()) {
-            zipFile.delete()
+    fun getSize(listFiles: List<File>): Long {
+        var size: Long = 0
+        for (file in listFiles) {
+            if (file.isDirectory) {
+                if(file.listFiles() != null) {
+                    for (files in file.listFiles()) {
+                        size += getSize(listOf(files))
+                    }
+                }
+            } else {
+                size += file.length()
+            }
         }
-        zipFile.createNewFile()
-
-        ZipUtil().zip(folderToCompress.listFiles()!!.toList(), outputZip)
+        return size
     }
-
 }

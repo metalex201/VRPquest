@@ -1,35 +1,31 @@
-package com.lex.vrpquest.ui.theme
+package com.lex.vrpquest.Managers
 
 import android.annotation.SuppressLint
+import com.google.firebase.crashlytics.buildtools.reloc.com.google.common.io.CountingInputStream
 import com.google.firebase.crashlytics.buildtools.reloc.org.apache.commons.io.output.CountingOutputStream
-import com.google.firebase.crashlytics.buildtools.reloc.org.apache.commons.io.output.NullOutputStream
 import okio.IOException
 import org.apache.commons.net.ftp.FTP
 import org.apache.commons.net.ftp.FTPClient
-import org.apache.commons.net.ftp.FTPFile
+import org.apache.commons.net.io.CopyStreamAdapter
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
-import java.io.OutputStream
 import java.net.SocketException
 
 
 fun testfpt(user:String, pass:String, host:String):Boolean {
 
     val client = FTPClient();
-    try {
+
         val parts = host.split(":").toTypedArray()
         if(parts.size < 2) {return false}
         println(parts[1])
-        client.connect(parts[0], parts[1].toInt());
-        client.login(user, pass);
+        client.connect(parts[0], parts[1].toInt())
+        println( "connected success"  + client.login(user, pass))
+        if(client.listFiles() == null) {return false}
         client.logout();
         return true
-    } catch (e: SocketException ) {
-        return false
-    } catch (e: IOException ) {
-        return false
-    }
-    return false
+
 }
 
 fun FTPconnect(user:String, pass:String, host:String):FTPClient? {
@@ -38,7 +34,8 @@ fun FTPconnect(user:String, pass:String, host:String):FTPClient? {
         val parts = host.split(":").toTypedArray()
         if(parts.size < 2) {return null}
         println(parts[1])
-        client.connect(parts[0], parts[1].toInt())
+        val success = client.connect(parts[0], parts[1].toInt())
+        println("CLIENT CONNECT " + success)
         client.login(user, pass);
         client.setFileType(FTP.BINARY_FILE_TYPE);
         client.enterLocalPassiveMode()
@@ -218,7 +215,55 @@ fun FTPgetFolderSize(client: FTPClient, folder:String):Long {
 }
 
 
+fun FTPuploadFile(client: FTPClient, localDir:String, remoteDir:String, progress: (Float) -> Unit):Boolean {
+    val fileName = File(localDir).name
 
+    val localdir = File(localDir).parentFile!!.absolutePath
+
+    if(!File(localdir).exists()) {File(localdir).mkdirs()}
+
+    client.enterLocalPassiveMode()
+    client.changeWorkingDirectory(remoteDir)
+    client.setFileType(FTP.BINARY_FILE_TYPE);
+
+    val fis = FileInputStream(localDir)
+    val fullsize = File(localDir).length()
+    var count:Long = 0
+    var streamListener: CopyStreamAdapter = object : CopyStreamAdapter() {
+        override fun bytesTransferred(
+            totalBytesTransferred: Long,
+            bytesTransferred: Int,
+            streamSize: Long
+        ) {
+            //this method will be called everytime some bytes are transferred
+
+            count++
+            if(count > 100) {
+                if (totalBytesTransferred != 0L && fullsize != 0L) {
+                    val percent = (((totalBytesTransferred  * 100) / fullsize) / 100F )
+                    progress(percent)
+                }
+                count = 0
+            }
+
+            // update your progress bar with this percentage
+        }
+    }
+
+    client.setCopyStreamListener(streamListener);
+
+
+
+    println("UPLOAD STARTED")
+
+    //benchmark(1, {client.retrieveFile(fileName, fos)})
+    val success = client.storeFile(fileName, fis)
+    progress(1F)
+
+    fis.close()
+    println("UPLOAD STATE : "+ success)
+    return success
+}
 
 
 

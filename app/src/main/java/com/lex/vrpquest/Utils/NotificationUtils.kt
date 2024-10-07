@@ -1,10 +1,10 @@
-package com.lex.vrpquest
+package com.lex.vrpquest.Utils
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import androidx.activity.ComponentActivity
 import androidx.core.app.NotificationCompat
+import com.lex.vrpquest.R
 
 
 fun showNotification(context:Context, message: String) {

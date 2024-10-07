@@ -1,15 +1,13 @@
-package com.lex.vrpquest
+package com.lex.vrpquest.Utils
 
 import android.content.Context
-import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.lex.vrpquest.dataStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
-import java.util.prefs.Preferences
 
 fun SettingStoreSting(context:Context, id:String, data:String) {
     val setting = stringSetPreferencesKey(id)
@@ -18,6 +16,29 @@ fun SettingStoreSting(context:Context, id:String, data:String) {
             settings[setting] = setOf(data)
         }
     }
+}
+
+fun SettingStoreStringSet(context:Context, id:String, data:Set<String>) {
+    val setting = stringSetPreferencesKey(id)
+    runBlocking {
+        context.dataStore.edit { settings ->
+            settings[setting] = data
+        }
+    }
+}
+
+fun SettingGetStringSet(context:Context, id:String): Set<String>? {
+    val setting = stringSetPreferencesKey(id)
+    var data:Set<String>? = null
+    runBlocking {
+        val result = context.dataStore.data.map { preferences ->
+            preferences[setting]}.first()
+
+        if (result == null) {data = null} else {
+            data = result
+        }
+    }
+    return data
 }
 
 fun SettingGetSting(context:Context, id:String): String? {
