@@ -1,5 +1,6 @@
 package com.lex.vrpquest.Pages
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,8 +35,10 @@ import com.lex.vrpquest.Utils.SettingStoreBoolean
 import com.lex.vrpquest.Managers.testfpt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
+@SuppressLint("CoroutineCreationDuringComposition")
 @Composable
 fun LoadPage(Page: () -> Unit, metadata: (ArrayList<Game>) -> Unit) {
     val context = LocalContext.current
@@ -50,8 +53,7 @@ fun LoadPage(Page: () -> Unit, metadata: (ArrayList<Game>) -> Unit) {
     var isRun by remember { mutableStateOf(false) }
     var state by remember { mutableStateOf(0) }
     var text by remember { mutableStateOf("") }
-    LaunchedEffect(true) {
-        CoroutineScope(Dispatchers.IO).launch {
+    GlobalScope.launch {
             val testftp = testfpt(username, password, host)
             if (!isRun) {
                 if (IsFTP && testftp) {
@@ -62,7 +64,7 @@ fun LoadPage(Page: () -> Unit, metadata: (ArrayList<Game>) -> Unit) {
                 }
             }
             isRun = true
-        }
+
     }
 
     when(state) {

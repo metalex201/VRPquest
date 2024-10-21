@@ -10,6 +10,8 @@ import com.lex.vrpquest.Utils.SettingGetSting
 import com.lex.vrpquest.Utils.SevenZipExtract
 import com.lex.vrpquest.Utils.downloadFile
 import com.lex.vrpquest.Utils.showNotification
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -33,32 +35,28 @@ class Game(
 
 @OptIn(ExperimentalEncodingApi::class)
 fun MetadataInitialize(context:Context, state: (Int) -> Unit, progress: (Float) -> Unit, metadata: (ArrayList<Game>) -> Unit) {
-    GlobalScope.launch {
-         if (1 == 1) {
-            Log.i(context.applicationInfo.name, "Downloading vrp-public.json")
-            val externalFilesDir = context.getExternalFilesDir(null)?.absolutePath.toString()
-            if (File("$externalFilesDir/meta.7z").exists()) { File("$externalFilesDir/meta.7z").delete()}
-            if (File("$externalFilesDir/meta").exists()) { File("$externalFilesDir/meta").deleteRecursively()}
-            Log.i(context.applicationInfo.name, "Downloading meta.7z")
-            val testjson = JSONObject(URL("https://raw.githubusercontent.com/vrpyou/quest/main/vrp-public.json").readText())
-            val baseUri = testjson.getString("baseUri")
-            val password = String(Base64.decode(testjson.getString("password")))
 
-            state(0)
-            downloadFile("$baseUri" + "meta.7z", "$externalFilesDir/meta.7z","rclone/v69", { progress(it) }).toString()
-            state(1)
-            SevenZipExtract("$externalFilesDir/meta.7z", "$externalFilesDir/meta/", true, password, { progress(it) });
-        }
-        delay(100)
+        Log.i(context.applicationInfo.name, "Downloading vrp-public.json")
+        val externalFilesDir = context.getExternalFilesDir(null)?.absolutePath.toString()
+        if (File("$externalFilesDir/meta.7z").exists()) { File("$externalFilesDir/meta.7z").delete()}
+        if (File("$externalFilesDir/meta").exists()) { File("$externalFilesDir/meta").deleteRecursively()}
+        Log.i(context.applicationInfo.name, "Downloading meta.7z")
+        val testjson = JSONObject(URL("https://raw.githubusercontent.com/vrpyou/quest/main/vrp-public.json").readText())
+        val baseUri = testjson.getString("baseUri")
+        val password = String(Base64.decode(testjson.getString("password")))
+        state(0)
+        println("$baseUri" + "meta.7z")
+        downloadFile("$baseUri" + "meta.7z", "$externalFilesDir/meta.7z","rclone/v69", { progress(it) }).toString()
+        state(1)
+        SevenZipExtract("$externalFilesDir/meta.7z", "$externalFilesDir/meta/", true, password, { progress(it) });
         state(2)
         metadata(SortGameList(context, { progress(it) }))
         state(3)
         //zip(File("$externalFilesDir/meta"), File("$externalFilesDir/meta.zip"))
-    }
 }
 @OptIn(ExperimentalEncodingApi::class)
 fun MetadataInitializeFTP(context:Context, state: (Int) -> Unit, progress: (Float) -> Unit, metadata: (ArrayList<Game>) -> Unit) {
-    GlobalScope.launch {
+    CoroutineScope(Dispatchers.IO).launch(Dispatchers.IO) {
         try {
             Log.i(context.applicationInfo.name, "Downloading vrp-public.json")
             val externalFilesDir = context.getExternalFilesDir(null)?.absolutePath.toString()
