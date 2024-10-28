@@ -61,6 +61,11 @@ import com.lex.vrpquest.Utils.REQUEST_PERMISSION_RESULT_LISTENER
 import com.lex.vrpquest.Utils.SearchBar
 import com.lex.vrpquest.Utils.SettingGetStringSet
 import com.lex.vrpquest.Utils.TextBar
+import com.lex.vrpquest.Utils.decryptPassword
+import java.util.Base64
+import javax.crypto.Cipher
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
@@ -108,12 +113,24 @@ class MainActivity : ComponentActivity() {
             0xf4, 0xde, 0x16, 0x2b, 0x8b, 0x95, 0xf6, 0x38)
             .map { it.toByte() }.toByteArray()
 
-
-
         val plainText = decrypt(inputText.toByteArray(), code)
         println("CODE RESULT: \n $plainText")
 
 
+
+
+
+
+
+
+        val encryptedPassword = "hAG8Jd8Qdmlffltz-rGi8lasjOvwRuEIt0jKuA"
+        val decryptedPassword = decryptPassword(encryptedPassword)
+
+        if (decryptedPassword != null) {
+            println("Decrypted password: $decryptedPassword")
+        } else {
+            println("Decryption failed")
+        }
 
         setContent {
             //SettingStoreStringSet(applicationContext, "DonateBlacklist", setOf("te", "tes", "test"))

@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.lex.vrpquest.Utils.SettingGetStringSet
 import com.lex.vrpquest.Utils.ZipUtil
+import com.lex.vrpquest.Utils.decryptPassword
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -152,7 +153,7 @@ fun StartDonation(context: Context, donatelist:MutableList<DonateQueue>) {
 
                     val host = properties.getProperty("host")
                     val user = properties.getProperty("user")
-                    val pass = "VrpDonati0ns" //properties.getProperty("pass")
+                    val pass = decryptPassword(properties.getProperty("pass"))!! //"VrpDonati0ns" //properties.getProperty("pass")
                     val port = properties.getProperty("port").toInt()
 
                     println("CONFIG VALUES : $host, $user $pass, $port")

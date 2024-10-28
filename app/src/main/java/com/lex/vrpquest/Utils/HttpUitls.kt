@@ -6,7 +6,6 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okio.BufferedSink
 import okio.buffer
 import okio.sink
 import java.io.File
@@ -40,7 +39,6 @@ fun downloadFile(url: String, destinationPath: String, customHeader: String, pro
 
     val sourceBytes = response.body!!.source()
     val sink = file.sink().buffer()
-    sink.flush();
     println("DOWNLOAD $url ")
     val contentLength = response.body!!.contentLength()
     var totalRead: Long = 0
@@ -71,47 +69,6 @@ fun downloadFile(url: String, destinationPath: String, customHeader: String, pro
         if (readCount == -1L) break
         totalBytesRead += readCount
     }
-
-    progress(1.0F)
-    sink.flush()
-    sink.close()
-    response.body!!.close()
-
-    println("Download finished: $destinationPath")
-    return true
-}
-fun downloadFilefast(url: String, destinationPath: String, customHeader: String, progress: (Float) -> Unit, IsStopping: MutableState<Boolean> = mutableStateOf(false)): Boolean {
-    println("$url START")
-    val client = OkHttpClient.Builder()
-        .addNetworkInterceptor { chain ->
-            val request = chain.request().newBuilder()
-                .header("User-Agent", customHeader)
-                .url(url)
-                .build()
-            chain.proceed(request)
-        }
-        .build()
-    println("REQUEST $url")
-    val request = Request.Builder().url(url).build()
-    val response = client.newCall(request).execute()
-    Log.i(TAG, response.toString())
-    if (!response.isSuccessful) {
-        println("Download failed: ${response.code}")
-        return false
-    }
-    println("BODY $url ")
-
-    val file = File(destinationPath)
-    if (file.parentFile!!.exists()) {
-        file.parentFile!!.mkdirs()
-    }
-
-    val sourceBytes = response.body!!.source()
-    val sink = file.sink().buffer()
-
-    println("DOWNLOAD $url ")
-
-    sink.writeAll(sourceBytes)
 
     progress(1.0F)
     sink.close()
