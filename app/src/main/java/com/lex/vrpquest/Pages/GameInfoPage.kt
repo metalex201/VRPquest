@@ -37,6 +37,8 @@ import com.lex.vrpquest.Utils.RoundByteValue
 import com.lex.vrpquest.Utils.SettingGetBoolean
 import com.lex.vrpquest.Utils.SettingGetSting
 import com.lex.vrpquest.Managers.getFreeStorageSpace
+import com.lex.vrpquest.Managers.md5Hash
+import com.lex.vrpquest.Utils.getDirFullSize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -54,6 +56,13 @@ fun gameInfoPage(game: Game?, OnInstall: (Game) -> Unit, OnClose: () -> Unit) {
         if (IsFTP) {
             LaunchedEffect(true) {
                 CoroutineScope(Dispatchers.IO).launch {
+                    //check If obb exists
+                    val obbfolder = File("/storage/emulated/0/Android/obb/${game.PackageName}")
+                    var obbsize = 0L
+                    if (obbfolder.exists()) {
+                        obbsize = obbfolder.length()
+                    }
+
                     var username = SettingGetSting(context, "username") ?: ""
                     var password = SettingGetSting(context, "pass") ?: ""
                     var host = SettingGetSting(context, "host") ?: ""
@@ -61,7 +70,7 @@ fun gameInfoPage(game: Game?, OnInstall: (Game) -> Unit, OnClose: () -> Unit) {
                     val remoteApk = FTPfindApk(client, "/Quest Games/" + game.ReleaseName + "/")
                     val file = File(remoteApk).name
                     val apksize = client.getSize(file).toLong()
-                    IsEnoughSpace = (apksize + (game.Size * 1000000L)) < freespace
+                    IsEnoughSpace = (apksize + (game.Size * 1000000L) - obbsize) < freespace
                     println("apksize: " + apksize)
                     println("gamesize: " + game.Size * 1000000L)
                     println("freespace: " + freespace)
@@ -69,7 +78,20 @@ fun gameInfoPage(game: Game?, OnInstall: (Game) -> Unit, OnClose: () -> Unit) {
                 }
             }
         } else {
-            IsEnoughSpace = game.Size * 2 < freespace / 1000000
+            var tempsize = 0L
+
+            val externalFilesDir = context.getExternalFilesDir(null)?.absolutePath.toString()
+            val gamehash =  md5Hash(game.ReleaseName + "\n")
+
+            val hashfolder = File("$externalFilesDir/$gamehash/")
+            val extractFolder = File("$externalFilesDir/${game.ReleaseName}/")
+
+            if (hashfolder.exists()) { tempsize += getDirFullSize(hashfolder) }
+            if (extractFolder.exists()) { tempsize += getDirFullSize(extractFolder) }
+
+            IsEnoughSpace = ((game.Size * 1000000L) - tempsize) < freespace
+            println("tempsize : $tempsize")
+            println("isenoughspace : $IsEnoughSpace")
         }
 
         Box(modifier = Modifier

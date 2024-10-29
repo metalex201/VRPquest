@@ -1,11 +1,14 @@
 package com.lex.vrpquest
 
 
+import android.app.Activity
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -31,8 +34,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.datastore.core.DataStore
@@ -42,7 +49,6 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.lex.vrpquest.Managers.DonateGame
 import com.lex.vrpquest.Managers.DonateQueue
 import com.lex.vrpquest.Managers.StartDonation
-import com.lex.vrpquest.Managers.decrypt
 import com.lex.vrpquest.Managers.getDonateGames
 import com.lex.vrpquest.Managers.Game
 import com.lex.vrpquest.Managers.QueueGame
@@ -61,11 +67,6 @@ import com.lex.vrpquest.Utils.REQUEST_PERMISSION_RESULT_LISTENER
 import com.lex.vrpquest.Utils.SearchBar
 import com.lex.vrpquest.Utils.SettingGetStringSet
 import com.lex.vrpquest.Utils.TextBar
-import com.lex.vrpquest.Utils.decryptPassword
-import java.util.Base64
-import javax.crypto.Cipher
-import javax.crypto.spec.IvParameterSpec
-import javax.crypto.spec.SecretKeySpec
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
@@ -101,36 +102,6 @@ class MainActivity : ComponentActivity() {
         //val res = File("/storage/emulated/0/Android/obb/TESTTT").mkdirs()
         //println("OBBTEST: $res")
         //println(ShizAdbCommand("echo testt"))
-
-        val inputText = "hAG8Jd8Qdmlffltz-rGi8lasjOvwRuEIt0jKuA                          "
-        //val inputText = "hAG8Jd8Qdmlffltz-rGi8lasjOvwRuEIt0jKuA                          "
-
-        println("HEX SIZE " + inputText.toByteArray().size)
-
-        val code = listOf(0x9c, 0x93, 0x5b, 0x48, 0x73, 0x0a, 0x55, 0x4d,
-            0x6b, 0xfd, 0x7c, 0x63, 0xc8, 0x86, 0xa9, 0x2b,
-            0xd3, 0x90, 0x19, 0x8e, 0xb8, 0x12, 0x8a, 0xfb,
-            0xf4, 0xde, 0x16, 0x2b, 0x8b, 0x95, 0xf6, 0x38)
-            .map { it.toByte() }.toByteArray()
-
-        val plainText = decrypt(inputText.toByteArray(), code)
-        println("CODE RESULT: \n $plainText")
-
-
-
-
-
-
-
-
-        val encryptedPassword = "hAG8Jd8Qdmlffltz-rGi8lasjOvwRuEIt0jKuA"
-        val decryptedPassword = decryptPassword(encryptedPassword)
-
-        if (decryptedPassword != null) {
-            println("Decrypted password: $decryptedPassword")
-        } else {
-            println("Decryption failed")
-        }
 
         setContent {
             //SettingStoreStringSet(applicationContext, "DonateBlacklist", setOf("te", "tes", "test"))
@@ -205,7 +176,8 @@ class MainActivity : ComponentActivity() {
                             }
                             Box(modifier = Modifier
                                 .fillMaxSize()
-                                .padding(10.dp, 0.dp)) {
+                                .padding(10.dp, 0.dp)
+                            ) {
 
                                 if(Gamelist.isEmpty()) {
                                     FullText("Game List is currently empty, gamedata is either  deleted or there was an issue connecting to the VRP server")
@@ -251,10 +223,19 @@ class MainActivity : ComponentActivity() {
                            }, donatelist) }
 
                     gameInfoPage(GameInfo, { game ->
-                         Queuelist.add(QueueGame(game))
-                         Startinstall(applicationContext, Queuelist)
-                         GameInfo = null
-                         }, {GameInfo = null})
+                        var IsInQueue = false
+                        for(i in Queuelist) {
+                            if (i.game.PackageName == game.PackageName) {
+                                 IsInQueue = true
+                            }
+                        }
+                        if(!IsInQueue) {
+                            Queuelist.add(QueueGame(game))
+                            Startinstall(applicationContext, Queuelist)
+                        }
+
+                        GameInfo = null
+                        }, {GameInfo = null})
 
                     PermissionPage()
                 }

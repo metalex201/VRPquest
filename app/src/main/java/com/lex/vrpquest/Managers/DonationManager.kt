@@ -9,6 +9,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import com.lex.vrpquest.Pages.RemoveFromCheckList
 import com.lex.vrpquest.Utils.SettingGetStringSet
 import com.lex.vrpquest.Utils.ZipUtil
 import com.lex.vrpquest.Utils.decryptPassword
@@ -111,6 +112,7 @@ fun StartDonation(context: Context, donatelist:MutableList<DonateQueue>) {
                 game.IsActive.value = true
                 var IsFinished = false
                 val externalFilesDir = context.getExternalFilesDir(null)?.absolutePath.toString()
+                val temp = File("$externalFilesDir/donateTemp")
 
                 dispatch.launch(Dispatchers.IO) {
                     val applicationInfo = context.packageManager.getApplicationInfo(game.packageName.value, 0);
@@ -126,8 +128,6 @@ fun StartDonation(context: Context, donatelist:MutableList<DonateQueue>) {
 
                     //ZIP processs
 
-
-                    val temp = File("$externalFilesDir/donateTemp")
                     if (temp.exists()) {
                         temp.deleteRecursively()
                     }
@@ -173,12 +173,20 @@ fun StartDonation(context: Context, donatelist:MutableList<DonateQueue>) {
                 dispatch.launch(Dispatchers.IO) {
                     while (!game.IsClosing.value) {
                         if (IsFinished) {
+                            if (temp.exists()) {
+                                temp.deleteRecursively()
+                            }
+
+                            RemoveFromCheckList(context, game.packageName.value)
+
                             game.IsClosing.value = true
                         }
                         delay(1)
                     }
                     if (!IsFinished) {
-                        //CLEANUP
+                        if (temp.exists()) {
+                            temp.deleteRecursively()
+                        }
                     }
                     if (!donatelist.isEmpty()) {donatelist.removeAt(0)}
 

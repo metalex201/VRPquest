@@ -65,10 +65,6 @@ fun QueuePage(Queuelist: MutableList<QueueGame>, Donatelist: MutableList<DonateQ
                 var bitmap: Bitmap
 
                 val icon: Drawable = appinfo.loadIcon(context.getPackageManager())
-
-                println(icon.intrinsicWidth )
-                println(icon.intrinsicHeight )
-
                 if (icon.intrinsicWidth == 0 || icon.intrinsicHeight == 0) {
                     bitmap = Bitmap.createBitmap(64, 64, Bitmap.Config.ARGB_8888)
                 } else {
@@ -77,6 +73,7 @@ fun QueuePage(Queuelist: MutableList<QueueGame>, Donatelist: MutableList<DonateQ
                         bitmap = Bitmap.createScaledBitmap(bitmap, 81, 81, false)
                     }
                 }
+
                 val imageBitmap = remember { bitmap.asImageBitmap() } // Remember the Bitmap
 
 

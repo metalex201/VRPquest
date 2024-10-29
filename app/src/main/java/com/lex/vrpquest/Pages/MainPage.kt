@@ -14,22 +14,61 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.lex.vrpquest.CustomColorScheme
 import com.lex.vrpquest.Managers.Game
 import com.lex.vrpquest.Utils.GetGameBitmap
 import com.lex.vrpquest.Utils.RoundByteValue
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun MainPage(Gamelist: MutableList<Game>, searchText: String, onClick: (Game) -> Unit) {
+    val lazygridstate = rememberLazyGridState()
+    var scrollfloat by remember { mutableStateOf(((lazygridstate.firstVisibleItemIndex / 5 ) * 226) + lazygridstate.firstVisibleItemScrollOffset) }
+    LaunchedEffect(lazygridstate.firstVisibleItemIndex, lazygridstate.firstVisibleItemScrollOffset) {
+        scrollfloat = ((lazygridstate.firstVisibleItemIndex / 5 ) * 226) + lazygridstate.firstVisibleItemScrollOffset
+        if (scrollfloat > 200) {scrollfloat = 200}
+    }
+
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 200.dp)
+        modifier = Modifier
+            .graphicsLayer { alpha = 0.99f }
+            .drawWithContent {
+                val colors = listOf(
+                    Color.Transparent,
+                    Color.Black
+                )
+                drawContent()
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors, startY = 0f,
+                        endY = scrollfloat.toFloat()
+                    ),
+                    blendMode = BlendMode.DstIn
+                )
+            },
+        columns = GridCells.Adaptive(minSize = 200.dp),
+        state = lazygridstate
     ) {
         Log.i(TAG, Gamelist.count().toString())
         items(Gamelist.filter { it.GameName.contains(searchText, ignoreCase = true) }) { game ->

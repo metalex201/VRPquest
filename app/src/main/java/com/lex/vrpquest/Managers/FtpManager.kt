@@ -265,11 +265,6 @@ fun FTPuploadFile(client: FTPClient, localDir:String, remoteDir:String, progress
     return success
 }
 
-
-
-
-
-
 fun benchmark(times: Int,  benchfunc: () -> Unit) {
     var startTime: Long
     var endTime: Long

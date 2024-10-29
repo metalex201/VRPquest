@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.packInts
 import com.lex.vrpquest.CustomColorScheme
 import com.lex.vrpquest.Managers.DonateGame
 import com.lex.vrpquest.Managers.DonateQueue
@@ -136,4 +137,15 @@ fun ProcessCheckList(context: Context, donatelist: List<DonateGame>, update: (Ar
         println("processchecklist returned is not empty")
         update(returned)
     }
+}
+
+fun RemoveFromCheckList(context: Context, PackageToRemove: String) {
+    val getblacklist = SettingGetStringSet(context, "DonateBlacklist") ?: mutableSetOf()
+    var blacklist = getblacklist.toMutableSet()
+
+    //blacklist.remove(PackageToRemove)
+    println("DONATEREMOVE")
+    println(blacklist.joinToString())
+    blacklist.add(PackageToRemove)
+    SettingStoreStringSet(context, "DonateBlacklist", blacklist)
 }

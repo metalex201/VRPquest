@@ -1,15 +1,21 @@
 package com.lex.vrpquest.Managers
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Environment
 import android.os.StatFs
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.core.content.ContextCompat.startActivity
 import androidx.core.content.FileProvider
+import com.lex.vrpquest.MainActivity
 import com.lex.vrpquest.Utils.SettingGetBoolean
 import com.lex.vrpquest.Utils.SettingGetSting
 import com.lex.vrpquest.Utils.SevenZipExtract
@@ -20,6 +26,7 @@ import com.lex.vrpquest.Utils.getUrlFileList
 import com.lex.vrpquest.Utils.getUrlFileSize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
@@ -77,7 +84,10 @@ fun RemoveQueueGame(index:Int, gamelist:MutableList<QueueGame>) {
 }
 
 @OptIn(ExperimentalEncodingApi::class)
-fun Startinstall(context: Context, gamelist:MutableList<QueueGame>) {
+fun Startinstall(
+    context: Context,
+    gamelist: MutableList<QueueGame>
+) {
 
     var IsFTP = SettingGetBoolean(context, "isPrivateFtp") ?: false
 
@@ -124,7 +134,7 @@ fun Startinstall(context: Context, gamelist:MutableList<QueueGame>) {
                     if(remoteApk != "") {
                         game.state.value = 4
                         FTPdownloadFile(client, localApk, remoteApk, { game.MainProgress.value = it })
-                        installApk(context, localApk)
+                        installApk(context, localApk, game.game)
                     }
                     //differentiate unfinished installs and finished ones
                     IsFinished = true
@@ -289,12 +299,9 @@ fun Startinstall(context: Context, gamelist:MutableList<QueueGame>) {
                                 for (file in File(apkFilePath).listFiles()) {
                                     if (file.name.endsWith(".apk")) {
                                         println("Starting apk install:" + file.path)
-                                        installApk(context, file.absolutePath)
+                                        installApk(context, file.absolutePath, game.game)
                                     }
                                 }
-
-                                val zipDir = File("$externalFilesDir/$gamehash/")
-                                //if (zipDir.exists()) {extractDir.deleteRecursively()}
                             }
                             break
                         }
@@ -314,8 +321,8 @@ fun Startinstall(context: Context, gamelist:MutableList<QueueGame>) {
                     if (File(hashfolder).exists()) {
                         File(hashfolder).deleteRecursively()
                     }
-                    if (File(extractFolder).exists()) {
-                        File(extractFolder).deleteRecursively()
+                    if (File(obbFolder).exists()) {
+                        File(obbFolder).deleteRecursively()
                     }
 
                     game.IsClosing.value = true
@@ -335,17 +342,17 @@ fun Startinstall(context: Context, gamelist:MutableList<QueueGame>) {
 }
 
 
-fun installApk(context: Context, apkpath:String) {
+fun installApk(context: Context, apkpath:String, game:Game) {
     println("INSTALLAPK:  $apkpath")
     val file = File(apkpath)
-
     if(canUseShizuku()) {
         println("SHIZUKU INSTALL AVAILABLE")
 
         println(
             ShizAdbCommand("cp \"${file.path}\"  \"/data/local/tmp/${file.name}\"; " +
                 "pm install \"/data/local/tmp/${file.name}\";" +
-                "rm \"/data/local/tmp/${file.name}\"")
+                "rm \"/data/local/tmp/${file.name}\";" +
+                    "rm \"${file.path}\"")
         )
     } else {
         val apkUri = FileProvider.getUriForFile(context, ".fileprovider", file)
@@ -353,6 +360,30 @@ fun installApk(context: Context, apkpath:String) {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
         }
         startActivity(context, intent, null)
+        GlobalScope.launch {
+            while (true) {
+                delay(1000)
+
+                val installedPackages = context.packageManager.getInstalledPackages(PackageManager.GET_ACTIVITIES)
+
+                for (packageInfo in installedPackages) {
+                    val packageName = packageInfo.packageName
+                    //check when apk is installed
+                    if (packageName == game.PackageName) {
+                        println("PACKAGENAME EQUAL")
+                        val packageInfo = context.packageManager.getPackageInfo(game.PackageName, 0);
+                        println(packageInfo.longVersionCode)
+                        println(game.VersionCode)
+                        if (packageInfo.longVersionCode == game.VersionCode.toLong()) {
+                            println("GAME IS MATCHING VERSION. UNINSTALLING")
+                            file.delete()
+                            cancel()
+                        }
+                    }
+                    //println(packageName)
+                }
+            }
+        }
     }
 }
 
