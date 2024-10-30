@@ -1,21 +1,18 @@
 package com.lex.vrpquest.Managers
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Environment
 import android.os.StatFs
-import androidx.activity.result.ActivityResult
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.core.content.ContextCompat.startActivity
 import androidx.core.content.FileProvider
-import com.lex.vrpquest.MainActivity
 import com.lex.vrpquest.Utils.SettingGetBoolean
 import com.lex.vrpquest.Utils.SettingGetSting
 import com.lex.vrpquest.Utils.SevenZipExtract
@@ -83,6 +80,7 @@ fun RemoveQueueGame(index:Int, gamelist:MutableList<QueueGame>) {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.P)
 @OptIn(ExperimentalEncodingApi::class)
 fun Startinstall(
     context: Context,
@@ -103,6 +101,8 @@ fun Startinstall(
                 var IsFinished = false
                 val downloaddir = "$externalFilesDir/${game.game.ReleaseName}/"
                 val localApk = downloaddir + game.game.PackageName + ".apk"
+                val localInstalTXT = downloaddir + "install.txt"
+
                 val localOBB = "/storage/emulated/0/Android/obb/${game.game.PackageName}/"
 
                 dispatch.launch(Dispatchers.IO) {
@@ -117,6 +117,7 @@ fun Startinstall(
 
                     val remoteObb = "/Quest Games/" + game.game.ReleaseName + "/" + game.game.PackageName + "/"
 
+                    val remoteTXT = "/Quest Games/" + game.game.ReleaseName + "/" + "install.txt"
                     val IsOBB = FTPfileExists(client, remoteObb)
 
                     val IsDeletePrev = SettingGetBoolean(context, "UnfinishedDelete") ?: false
@@ -131,11 +132,19 @@ fun Startinstall(
                         FTPdownloadRecursive(client, localOBB, remoteObb, { game.MainProgress.value = it })
                     }
 
-                    if(remoteApk != "") {
-                        game.state.value = 4
-                        FTPdownloadFile(client, localApk, remoteApk, { game.MainProgress.value = it })
-                        installApk(context, localApk, game.game)
+
+
+                    if(FTPfileExists(client,remoteTXT)) {
+                        FTPdownloadFile(client, localInstalTXT, remoteTXT, {})
+                        ParseInstallTXT(context, localInstalTXT)
+                    } else {
+                        if(remoteApk != "") {
+                            game.state.value = 4
+                            FTPdownloadFile(client, localApk, remoteApk, { game.MainProgress.value = it })
+                            installApk(context, localApk, game.game)
+                        }
                     }
+
                     //differentiate unfinished installs and finished ones
                     IsFinished = true
                 }
@@ -296,10 +305,17 @@ fun Startinstall(
                                 moveDirectory(movfile, destfile, {game.MainProgress.value = it})
 
                                 val apkFilePath = "$externalFilesDir/${game.game.ReleaseName}/${game.game.ReleaseName}"  //${game.game.PackageName}.apk"
-                                for (file in File(apkFilePath).listFiles()) {
-                                    if (file.name.endsWith(".apk")) {
-                                        println("Starting apk install:" + file.path)
-                                        installApk(context, file.absolutePath, game.game)
+
+                                val installTXTpath = "$externalFilesDir/${game.game.ReleaseName}/${game.game.ReleaseName}/install.txt"
+
+                                if(File(installTXTpath).exists()) {
+                                    ParseInstallTXT(context, installTXTpath)
+                                } else {
+                                    for (file in File(apkFilePath).listFiles()!!) {
+                                        if (file.name.endsWith(".apk")) {
+                                            println("Starting apk install:" + file.path)
+                                            installApk(context, file.absolutePath, game.game)
+                                        }
                                     }
                                 }
                             }
@@ -342,6 +358,7 @@ fun Startinstall(
 }
 
 
+@RequiresApi(Build.VERSION_CODES.P)
 fun installApk(context: Context, apkpath:String, game:Game) {
     println("INSTALLAPK:  $apkpath")
     val file = File(apkpath)
@@ -385,6 +402,62 @@ fun installApk(context: Context, apkpath:String, game:Game) {
             }
         }
     }
+}
+
+fun ParseInstallTXT(context: Context, txtPath:String) {
+    val installtxt = File(txtPath).readText()
+    var temptxt = ""
+    val localDir =  File(txtPath).path.removeSuffix("install.txt")
+    if(canUseShizuku()) {
+        for(line in installtxt.lines()) {
+            if(line.startsWith("adb shell")) {
+                temptxt += "${line.removePrefix("adb shell ")}; \n"
+            }
+            if(line.startsWith("adb install")) {
+                val apkpath = "$localDir${line
+                    .removePrefix("adb install")
+                    .removePrefix(" -g")
+                    .removePrefix(" -r")
+                    .removePrefix(" -k")
+                    .removePrefix(" ")}"
+
+                val apkname = File(apkpath).name
+
+                temptxt += "cp \"$apkpath\" /data/local/tmp/; " +
+                            "pm install -g -r /data/local/tmp/$apkname; " +
+                            "rm /data/local/tmp/$apkname; "
+
+                //"pm install -g -r \"$localDir${line.removePrefix("adb install -g -r ")}\"; "
+            }
+            if(line.startsWith("adb pull")) {
+                temptxt += "mv \"${line.removePrefix("adb pull ")}\" \"$localDir\"; "
+            }
+            if(line.startsWith("adb push")) {
+                val tempsplit = splitArguments(line.removePrefix("adb push "))
+                temptxt += "mv \"$localDir${tempsplit[0]}\" \"${tempsplit[1]}\"; "
+            }
+        }
+
+        println("ORIGINAL INSTALL TXT: ")
+        println(installtxt)
+        println("PARSED INSTALL TXT: ")
+        println(temptxt)
+
+        println("CONSOLE RESPONSE: ")
+        //println(ShizAdbCommand(temptxt))
+        val tempval = temptxt.split(";")
+        for(i in tempval) {
+            println("command:")
+            println(i)
+            println("result:")
+            println(ShizAdbCommand(i))
+        }
+    }
+}
+
+fun splitArguments(input: String): List<String> {
+    val regex = """("[^"]*"|\S+)""".toRegex()
+    return regex.findAll(input).map { it.value.trim('"') }.toList()
 }
 
 fun moveDirectory(sourceDirectory: File, targetDirectory: File, progressCallback: (Float) -> Unit) {

@@ -23,6 +23,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -280,13 +282,47 @@ fun GetGameBitmap(thumbnail: String): ImageBitmap {
 }
 
 @Composable
-fun RoundDivider() {
+fun RoundDivider(Color:Color = CustomColorScheme.background) {
     Box(modifier = Modifier
         .fillMaxWidth()
         .padding(50.dp, 0.dp)
         .height(3.dp)
         .clip(RoundedCornerShape(10.dp))
-        .background(color = CustomColorScheme.background))
+        .background(color = Color))
+}
+@Composable
+fun GroupDivider() {
+    Box(modifier = Modifier
+        .fillMaxWidth()
+        .height(3.dp)
+        .clip(RoundedCornerShape(10.dp))
+        .background(color = CustomColorScheme.onSurface))
+}
+
+@Composable
+fun GroupDropDown(value: Boolean, onChange: (Boolean) -> Unit, text:String) {
+    Column(modifier = Modifier
+        .fillMaxWidth()
+        .padding(50.dp, 10.dp))
+    {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Icon(modifier = Modifier
+                .clip(RoundedCornerShape(50.dp))
+                .size(35.dp)
+                .clickable{
+                    onChange(!value)
+                }, imageVector = if (value) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowUp,
+                contentDescription = ""
+            )
+
+            Text(modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.Center),
+                textAlign = TextAlign.Center,
+                text = text)
+        }
+        GroupDivider()
+    }
 }
 
 fun RoundByteValue(bytes:Int) : String {

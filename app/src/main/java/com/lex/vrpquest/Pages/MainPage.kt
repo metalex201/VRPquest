@@ -56,17 +56,14 @@ fun MainPage(Gamelist: MutableList<Game>, searchText: String, onClick: (Game) ->
             .drawWithContent {
                 val colors = listOf(
                     Color.Transparent,
-                    Color.Black
-                )
+                    Color.Black)
                 drawContent()
                 drawRect(
                     brush = Brush.verticalGradient(
                         colors, startY = 0f,
                         endY = scrollfloat.toFloat()
                     ),
-                    blendMode = BlendMode.DstIn
-                )
-            },
+                    blendMode = BlendMode.DstIn) },
         columns = GridCells.Adaptive(minSize = 200.dp),
         state = lazygridstate
     ) {
