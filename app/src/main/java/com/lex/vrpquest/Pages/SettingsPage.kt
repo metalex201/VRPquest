@@ -202,11 +202,13 @@ fun SettingsPage() {
                     localfile.deleteRecursively()
                 }
             }
-            DatastoreTextSwitch(context, "Delete half-finished games when they're re-downloaded", id = "UnfinishedDelete" )
 
             SettingsTextButton(text = "Clear ignored game donations blacklist", buttontext = "Clear") {
                 SettingStoreStringSet(context, "DonateBlacklist", setOf())
             }
+
+            DatastoreTextSwitch(context, "Delete half-finished games when they're re-downloaded", id = "UnfinishedDelete" )
+
         }
     }
 }
