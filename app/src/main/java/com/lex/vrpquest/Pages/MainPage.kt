@@ -46,7 +46,7 @@ fun MainPage(Gamelist: MutableList<Game>, searchText: String, onClick: (Game) ->
     val lazygridstate = rememberLazyGridState()
     var scrollfloat by remember { mutableStateOf(((lazygridstate.firstVisibleItemIndex / 5 ) * 226) + lazygridstate.firstVisibleItemScrollOffset) }
     LaunchedEffect(lazygridstate.firstVisibleItemIndex, lazygridstate.firstVisibleItemScrollOffset) {
-        scrollfloat = ((lazygridstate.firstVisibleItemIndex / 5 ) * 226) + lazygridstate.firstVisibleItemScrollOffset
+        scrollfloat = ((lazygridstate.firstVisibleItemIndex / 1 ) * 226) + lazygridstate.firstVisibleItemScrollOffset
         if (scrollfloat > 200) {scrollfloat = 200}
     }
 

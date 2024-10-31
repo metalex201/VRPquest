@@ -185,12 +185,12 @@ fun SevenZipExtract(archive: String,
     if (!outputDirectoryFile.exists()) {
         outputDirectoryFile.mkdirs()
     } else {
-        if (outputDirectoryFile.listFiles() != null) {
-            throw ExtractionException(
-                "Output directory not empty: "
-                        + outputDirectory
-            )
-        }
+//        if (outputDirectoryFile.listFiles() != null) {
+//            throw ExtractionException(
+//                "Output directory not empty: "
+//                        + outputDirectory
+//            )
+//        }
     }
     if (IsSingularZip) {
         //extractArchiveSingle

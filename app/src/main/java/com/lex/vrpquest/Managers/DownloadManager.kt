@@ -86,7 +86,6 @@ fun Startinstall(
     context: Context,
     gamelist: MutableList<QueueGame>
 ) {
-
     var IsFTP = SettingGetBoolean(context, "isPrivateFtp") ?: false
 
 
@@ -97,9 +96,12 @@ fun Startinstall(
         val game = gamelist.firstOrNull()
         if (game != null && !game.IsActive.value) {
             game.IsActive.value = true
+
+            //PRIVATE MIRROR
+
             if (IsFTP) {
                 var IsFinished = false
-                val downloaddir = "$externalFilesDir/${game.game.ReleaseName}/"
+                val downloaddir = "$externalFilesDir${game.game.ReleaseName}/"
                 val localApk = downloaddir + game.game.PackageName + ".apk"
                 val localInstalTXT = downloaddir + "install.txt"
 
@@ -111,13 +113,11 @@ fun Startinstall(
                     var host = SettingGetSting(context, "host") ?: ""
                     val client = FTPconnect(username, password, host) ?: return@launch
 
-                    println("/Quest Games/" + game.game.ReleaseName + "/" + game.game.PackageName)
-
                     val remoteApk = FTPfindApk(client, "/Quest Games/" + game.game.ReleaseName + "/")
-
                     val remoteObb = "/Quest Games/" + game.game.ReleaseName + "/" + game.game.PackageName + "/"
-
                     val remoteTXT = "/Quest Games/" + game.game.ReleaseName + "/" + "install.txt"
+                    val remotePath = "/Quest Games/" + game.game.ReleaseName
+
                     val IsOBB = FTPfileExists(client, remoteObb)
 
                     val IsDeletePrev = SettingGetBoolean(context, "UnfinishedDelete") ?: false
@@ -127,18 +127,25 @@ fun Startinstall(
                         if (File(localApk).exists()) { File(localApk).delete() }
                     }
 
-                    if (IsOBB) {
-                        game.state.value = 3
-                        FTPdownloadRecursive(client, localOBB, remoteObb, { game.MainProgress.value = it })
-                    }
+                    if(FTPfileExists(client, remoteTXT) && canUseShizuku()) {
+                        game.state.value = 0
+                        FTPdownloadRecursive(client, downloaddir, remotePath, { game.MainProgress.value = it })
+                        if(File("$downloaddir/_data.7z").exists()) {
+                            println("_DATA.7Z EXISTS EXTRACTING")
+                            game.state.value = 1
+                            SevenZipExtract("$downloaddir/_data.7z", downloaddir, true, "", { game.MainProgress.value = it });
+                        }
 
-
-
-                    if(FTPfileExists(client,remoteTXT)) {
-                        FTPdownloadFile(client, localInstalTXT, remoteTXT, {})
                         ParseInstallTXT(context, localInstalTXT)
+
+                        //CLEANUP
+                        if (File(downloaddir).exists()) { File(downloaddir).delete() }
                     } else {
                         if(remoteApk != "") {
+                            if (IsOBB) {
+                                game.state.value = 3
+                                FTPdownloadRecursive(client, localOBB, remoteObb, { game.MainProgress.value = it })
+                            }
                             game.state.value = 4
                             FTPdownloadFile(client, localApk, remoteApk, { game.MainProgress.value = it })
                             installApk(context, localApk, game.game)
@@ -168,7 +175,7 @@ fun Startinstall(
                     if (!IsFinished) {
                         if (File(localOBB).exists()) { File(localOBB).deleteRecursively() }
                         if (File(localApk).exists()) { File(localApk).delete() }
-
+                        if (File(downloaddir).exists()) { File(downloaddir).delete() }
                         gamelist.removeAt(0)
 
                         if (!gamelist.isEmpty()) {
@@ -178,7 +185,11 @@ fun Startinstall(
                     }
 
                 }
-            } else {
+            }
+
+            //PUBLIC MIRROR
+
+            if(!IsFTP) {
                 val gamehash =  md5Hash(gamelist[0].game.ReleaseName + "\n")
 
                 val testjson = JSONObject(URL("https://raw.githubusercontent.com/vrpyou/quest/main/vrp-public.json").readText())

@@ -2,6 +2,7 @@ package com.lex.vrpquest.Pages
 
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.provider.Settings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -46,7 +47,19 @@ fun SettingsPage() {
     // Retrieve the context from Compose
     val context = LocalContext.current
     val activity = (LocalContext.current as Activity)
-    val ShizukuExists = isPackageInstalled(context, "moe.shizuku.privileged.api")
+
+    var ShizukuExists by remember { mutableStateOf(isPackageInstalled(context, "moe.shizuku.privileged.api")) }
+    var isBinder by remember { mutableStateOf(Shizuku.pingBinder()) }
+    var isGranted by remember { mutableStateOf(IsShizukuGranted()) }
+
+    LaunchedEffect(!isBinder || !isGranted || !ShizukuExists) {
+        while(!isBinder || !isGranted || !ShizukuExists) {
+            delay(100)
+            ShizukuExists = isPackageInstalled(context, "moe.shizuku.privileged.api")
+            isBinder = Shizuku.pingBinder()
+            isGranted = IsShizukuGranted()
+        }
+    }
 
     Column(modifier = Modifier
         .verticalScroll(rememberScrollState())
@@ -54,19 +67,21 @@ fun SettingsPage() {
         .padding(10.dp)) {
 
         //SHIZUKU STATE INDICATOR
-        if(ShizukuExists) {
-            if (Shizuku.pingBinder()) { //shizuku is running
-                if (!IsShizukuGranted()) {
-                    SettingsTextButton("Shizuku is running but permission has not been granted",
-                        "Request Permission", { checkPermission(0) })
+        settingsGroup() {
+            if(ShizukuExists) {
+                if (isBinder) { //shizuku is running
+                    if (!isGranted) {
+                        SettingsTextButton("Shizuku is running but permission has not been granted",
+                            "Request Permission", { checkPermission(0) })
+                    } else {
+                        settingsText("Shizuku is running and is connected")
+                    }
                 } else {
-                    settingsText("Shizuku is running and is connected")
+                    settingsText("Shizuku is not running")
                 }
             } else {
-                settingsText("Shizuku is not running")
+                settingsText("Shizuku needs to be installed")
             }
-        } else {
-            settingsText("Shizuku needs to be installed")
         }
 
         //SHIZUKU PAIR INSTRUCTIONS

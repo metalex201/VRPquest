@@ -76,7 +76,7 @@ fun MetadataInitializeFTP(context:Context, state: (Int) -> Unit, progress: (Floa
             //FTPdownloadRecursive(client, "$externalFilesDir/test", "/Quest Games/10 Seconds v3+1.0 -VRP")
             //downloadFile("$baseUri" + "meta.7z", "$externalFilesDir/meta.7z","rclone/v69", { progress(it) }).toString()
             //zip(File("$externalFilesDir/meta"), File("$externalFilesDir/meta.zip"))
-
+            println("FTP metadata download")
             FTPdownloadFile(client, "$externalFilesDir/meta.7z", "/Quest Games/meta.7z", { progress(it) })
 
             state(1)

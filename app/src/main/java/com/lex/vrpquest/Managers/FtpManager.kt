@@ -5,6 +5,7 @@ import com.google.firebase.crashlytics.buildtools.reloc.com.google.common.io.Cou
 import com.google.firebase.crashlytics.buildtools.reloc.org.apache.commons.io.output.CountingOutputStream
 import okio.IOException
 import org.apache.commons.net.ftp.FTP
+import org.apache.commons.net.ftp.FTP.BINARY_FILE_TYPE
 import org.apache.commons.net.ftp.FTPClient
 import org.apache.commons.net.io.CopyStreamAdapter
 import java.io.File
@@ -14,17 +15,19 @@ import java.net.SocketException
 
 
 fun testfpt(user:String, pass:String, host:String):Boolean {
-
     val client = FTPClient();
-
-        val parts = host.split(":").toTypedArray()
-        if(parts.size < 2) {return false}
-        println(parts[1])
-        client.connect(parts[0], parts[1].toInt())
-        println( "connected success"  + client.login(user, pass))
-        if(client.listFiles() == null) {return false}
-        client.logout();
-        return true
+    val parts = host.split(":").toTypedArray()
+    if(parts.size < 2) {return false}
+    println(parts[1])
+    client.connect(parts[0], parts[1].toInt())
+    client.login(user, pass)
+    client.enterLocalPassiveMode()
+    if(client.listFiles() == null) {
+        println("no files can be found, FTP is connected but has no access")
+        return false }
+    client.logout();
+    println("Ftp connect success")
+    return true
 
 }
 
@@ -61,7 +64,7 @@ fun FTPdownloadFile(client: FTPClient, localDir:String, remoteDir:String, progre
     client.enterLocalPassiveMode()
     client.changeWorkingDirectory(directory)
     client.setFileType(FTP.BINARY_FILE_TYPE);
-
+    client.setFileTransferMode(BINARY_FILE_TYPE);
     val fullsize = client.getSize(fileName).toLong()
 
     val fos = FileOutputStream(localDir)
@@ -91,6 +94,7 @@ fun FTPdownloadFile(client: FTPClient, localDir:String, remoteDir:String, progre
     println("DOWNLOAD STARTED")
 
     //benchmark(1, {client.retrieveFile(fileName, fos)})
+    client.setFileTransferMode(BINARY_FILE_TYPE);
     val success = client.retrieveFile(fileName, cos)
     progress(1F)
 
@@ -109,37 +113,54 @@ fun FTPdownloadRecursive(client: FTPClient, localDir:String, remoteDir:String, p
 
     @SuppressLint("SuspiciousIndentation")
     fun file(client: FTPClient, localDir:String, remoteDir:String):Boolean {
+        var fileExists = false
+        println("FILE DOWNLOAD CLIENT")
+        println("localdir: $localDir")
 
-        val remoteFile = File(remoteDir)
-        val fileName = remoteFile.name
-
-        val fos = FileOutputStream(localDir)
-        fos.flush()
-
-        val fullsize = client.getSize(fileName).toLong()
-        var count = 0
-        val updatetime = 1000
-
-        val cos: CountingOutputStream = object : CountingOutputStream(fos) {
-            override fun beforeWrite(n: Int) {
-                super.beforeWrite(n)
-                count++
-                if (count >= updatetime) {
-                    currentSize = finishedSize + getByteCount()
-                    val progress = (currentSize) / (size /100 ) / 100F
-                    progress(progress)
-                    println("Downloaded " +  getByteCount() + "/" + fullsize)
-                    count = 0
-                }
-
+        if(File(localDir).exists()) {
+            println("FILE LOCALDIR EXIST")
+            if (File(localDir).length() == FTPgetFileSize(client, localDir)) {
+                println("FILE SIZE EQUAL FTP")
+                fileExists = true
+            } else {
+                File(localDir).delete()
             }
         }
 
-        val success = client.retrieveFile(fileName, cos)
-        finishedSize += fullsize
+        if(!fileExists) {
+            println("FILE FPT DOWNLOAD START")
+            val remoteFile = File(remoteDir)
+            val fileName = remoteFile.name
 
-        fos.close()
-        return success
+            val fos = FileOutputStream(localDir)
+            fos.flush()
+
+            val fullsize = client.getSize(fileName).toLong()
+            var count = 0
+            val updatetime = 1000
+
+            val cos: CountingOutputStream = object : CountingOutputStream(fos) {
+                override fun beforeWrite(n: Int) {
+                    super.beforeWrite(n)
+                    count++
+                    if (count >= updatetime) {
+                        currentSize = finishedSize + getByteCount()
+                        val progress = (currentSize) / (size /100 ) / 100F
+                        progress(progress)
+                        println("Downloaded " +  getByteCount() + "/" + fullsize)
+                        count = 0
+                    }
+
+                }
+            }
+
+            val success = client.retrieveFile(fileName, cos)
+            finishedSize += fullsize
+
+            fos.close()
+            return success
+        }
+        return true
     }
 
     fun recursive(client: FTPClient, localDir:String, remoteDir:String):Boolean {
@@ -214,6 +235,19 @@ fun FTPgetFolderSize(client: FTPClient, folder:String):Long {
     return size
 }
 
+fun FTPgetFileSize(client: FTPClient, file:String):Long {
+    val dir = File(file).parentFile?.absolutePath
+    val name = File(file).name
+
+    client.changeWorkingDirectory(dir)
+
+    for(file in client.listFiles()) {
+        if(file.name == name) {
+            return file.size
+        }
+    }
+    return 0
+}
 
 fun FTPuploadFile(client: FTPClient, localDir:String, remoteDir:String, progress: (Float) -> Unit):Boolean {
     val fileName = File(localDir).name

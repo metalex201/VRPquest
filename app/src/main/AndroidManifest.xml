@@ -55,6 +55,9 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data
+                android:name="com.oculus.vrshell.supports_blend_effects"
+                android:value="true"/>
         </activity>
         <provider
             android:name="rikka.shizuku.ShizukuProvider"

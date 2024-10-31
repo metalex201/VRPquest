@@ -3,8 +3,10 @@ package com.lex.vrpquest
 
 import android.app.Activity
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResult
@@ -67,6 +69,7 @@ import com.lex.vrpquest.Utils.REQUEST_PERMISSION_RESULT_LISTENER
 import com.lex.vrpquest.Utils.SearchBar
 import com.lex.vrpquest.Utils.SettingGetStringSet
 import com.lex.vrpquest.Utils.TextBar
+import kotlinx.coroutines.delay
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
@@ -85,6 +88,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        //KEEP DEVICE AWAKE
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         //Shizuku.addRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
         //showNotification(applicationContext, "TEST NOTIF")
@@ -122,10 +127,14 @@ class MainActivity : ComponentActivity() {
             }
 
             var IsQueuelistEmpty by remember { mutableStateOf(false) }
-            var IsShizukuConnected by remember { mutableStateOf(Shizuku.pingBinder() && com.lex.vrpquest.Utils.checkPermission(
-                0
-            )
-            ) }    // either shizuku doesnt exist or the app doesnt have permission
+            var IsShizukuConnected by remember { mutableStateOf(Shizuku.pingBinder() && com.lex.vrpquest.Utils.checkPermission(0)) }    // either shizuku doesnt exist or the app doesnt have permission
+
+            LaunchedEffect(!IsShizukuConnected) {
+                while(!IsShizukuConnected) {
+                    delay(100)
+                    IsShizukuConnected = Shizuku.pingBinder() && (Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED)
+                }
+            }
 
             var searchText by remember { mutableStateOf("") }
 

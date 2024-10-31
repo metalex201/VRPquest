@@ -53,6 +53,7 @@ fun LoadPage(Page: () -> Unit, metadata: (ArrayList<Game>) -> Unit) {
     var isRun by remember { mutableStateOf(false) }
     var state by remember { mutableStateOf(0) }
     var text by remember { mutableStateOf("") }
+
     LaunchedEffect(true) {
         GlobalScope.launch {
             val testftp = testfpt(username, password, host)
