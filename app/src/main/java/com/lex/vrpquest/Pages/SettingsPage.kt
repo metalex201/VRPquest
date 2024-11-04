@@ -50,14 +50,16 @@ fun SettingsPage() {
 
     var ShizukuExists by remember { mutableStateOf(isPackageInstalled(context, "moe.shizuku.privileged.api")) }
     var isBinder by remember { mutableStateOf(Shizuku.pingBinder()) }
-    var isGranted by remember { mutableStateOf(IsShizukuGranted()) }
+    var isGranted by remember { mutableStateOf(false) }
 
     LaunchedEffect(!isBinder || !isGranted || !ShizukuExists) {
         while(!isBinder || !isGranted || !ShizukuExists) {
             delay(100)
             ShizukuExists = isPackageInstalled(context, "moe.shizuku.privileged.api")
             isBinder = Shizuku.pingBinder()
-            isGranted = IsShizukuGranted()
+            if(isBinder) {
+                isGranted = IsShizukuGranted()
+            }
         }
     }
 
@@ -207,8 +209,13 @@ fun SettingsPage() {
                 SettingStoreStringSet(context, "DonateBlacklist", setOf())
             }
 
-            DatastoreTextSwitch(context, "Delete half-finished games when they're re-downloaded", id = "UnfinishedDelete" )
+            DatastoreTextSwitch(context, "Delete half-finished games when they're re-downloaded", id = "UnfinishedDelete")
 
+        }
+        settingsGroup() {
+            settingsText("Shizuku Settings")
+            RoundDivider()
+            DatastoreTextSwitch(context, "Stop device from going to sleep while there is a download in progress", id = "ShizukuAvoidSleep")
         }
     }
 }

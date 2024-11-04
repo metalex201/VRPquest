@@ -97,6 +97,14 @@ fun Startinstall(
         if (game != null && !game.IsActive.value) {
             game.IsActive.value = true
 
+            //AVOID SLEEP
+
+            var IsStopSleep = SettingGetBoolean(context, "ShizukuAvoidSleep") ?: false
+
+            if(canUseShizuku() && IsStopSleep) {
+                ShizAdbCommand("am broadcast -a com.oculus.vrpowermanager.prox_close")
+            }
+
             //PRIVATE MIRROR
 
             if (IsFTP) {
@@ -180,6 +188,13 @@ fun Startinstall(
 
                         if (!gamelist.isEmpty()) {
                             Startinstall(context, gamelist)
+                        } else {
+
+                            //TURN BACK SLEEP SENSOR
+
+                            if(canUseShizuku() && IsStopSleep) {
+                                ShizAdbCommand("am broadcast -a com.oculus.vrpowermanager.automation_disable")
+                            }
                         }
                         cancel()
                     }
@@ -192,7 +207,16 @@ fun Startinstall(
             if(!IsFTP) {
                 val gamehash =  md5Hash(gamelist[0].game.ReleaseName + "\n")
 
-                val testjson = JSONObject(URL("https://raw.githubusercontent.com/vrpyou/quest/main/vrp-public.json").readText())
+                var testjson = JSONObject()
+
+                try {
+                    testjson = JSONObject(URL("https://raw.githubusercontent.com/vrpyou/quest/main/vrp-public.json").readText())
+                } catch (E:Exception) {
+                    disableSSLCertificateChecking()
+                    testjson = JSONObject(URL("https://vrpirates.wiki/downloads/vrp-public.json").readText())
+                    enableSSLCertificateChecking()
+                }
+
                 val baseUri = testjson.getString("baseUri")
                 val password = String(Base64.decode(testjson.getString("password")))
                 val hashfolder = "$externalFilesDir/$gamehash/"
@@ -221,7 +245,7 @@ fun Startinstall(
                     //STARTING QUEUED ZIP DOWNLOAD
                     var ZipCounter = 0
                     var ZipFinished = 0
-                    var ZipLimit = 4
+                    var ZipLimit = 2
                     for (i in 1..zipCount) {
                         println("Downloading zip, $i")
 
@@ -248,11 +272,23 @@ fun Startinstall(
                                 cancel("IsClosing")
                             } else {
                                 if (zipfile.exists())  { zipfile.delete() }
-                                downloadFile("$baseUri/$gamehash/$gamehash.7z.$formatedNum",
-                                    "$externalFilesDir/$gamehash/$gamehash.7z.$formatedNum",
-                                    "rclone/v69",
-                                    { game.progressList.set(i-1, it) }, game.IsClosing
-                                )
+
+                                fun downloadZip() {
+                                    try {
+                                        downloadFile("$baseUri/$gamehash/$gamehash.7z.$formatedNum",
+                                            "$externalFilesDir/$gamehash/$gamehash.7z.$formatedNum",
+                                            "rclone/v69",
+                                            { game.progressList.set(i-1, it) }, game.IsClosing
+                                        )
+                                    } catch (e:Exception) {
+                                        val zipfile = File("$externalFilesDir/$gamehash/$gamehash.7z.$formatedNum")
+                                        if (zipfile.exists()) { zipfile.delete() }
+                                        downloadZip()
+                                    }
+                                }
+
+                                downloadZip()
+
                                 ZipCounter--
                                 ZipFinished ++
                             }
@@ -360,6 +396,10 @@ fun Startinstall(
 
                     if (!gamelist.isEmpty()) {
                         Startinstall(context, gamelist)
+                    }   else {
+                        if(canUseShizuku() && IsStopSleep) {
+                            ShizAdbCommand("am broadcast -a com.oculus.vrpowermanager.automation_disable")
+                        }
                     }
                     cancel()
                 }

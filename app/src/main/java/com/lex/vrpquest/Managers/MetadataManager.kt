@@ -41,7 +41,17 @@ fun MetadataInitialize(context:Context, state: (Int) -> Unit, progress: (Float) 
         if (File("$externalFilesDir/meta.7z").exists()) { File("$externalFilesDir/meta.7z").delete()}
         if (File("$externalFilesDir/meta").exists()) { File("$externalFilesDir/meta").deleteRecursively()}
         Log.i(context.applicationInfo.name, "Downloading meta.7z")
-        val testjson = JSONObject(URL("https://raw.githubusercontent.com/vrpyou/quest/main/vrp-public.json").readText())
+
+        var testjson = JSONObject()
+
+        try {
+            testjson = JSONObject(URL("https://raw.githubusercontent.com/vrpyou/quest/main/vrp-public.json").readText())
+        } catch (E:Exception) {
+            disableSSLCertificateChecking()
+            testjson = JSONObject(URL("https://vrpirates.wiki/downloads/vrp-public.json").readText())
+            enableSSLCertificateChecking()
+        }
+
         val baseUri = testjson.getString("baseUri")
         val password = String(Base64.decode(testjson.getString("password")))
         state(0)
