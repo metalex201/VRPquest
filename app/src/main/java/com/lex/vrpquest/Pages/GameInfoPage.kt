@@ -28,6 +28,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
 import com.lex.vrpquest.CustomColorScheme
 import com.lex.vrpquest.Managers.FTPconnect
 import com.lex.vrpquest.Managers.FTPfindApk
@@ -101,47 +110,99 @@ fun gameInfoPage(game: Game?, OnInstall: (Game) -> Unit, OnClose: () -> Unit) {
             Box(modifier = Modifier
                 .padding(10.dp)
                 .clip(RoundedCornerShape(50.dp))
-                .width(280.dp)
+                .fillMaxWidth(0.5f)
                 .align(Alignment.Center)
                 .background(
                     CustomColorScheme.surface
                 )) {
-                Column(Modifier.padding(10.dp)) {
+                Column(Modifier.padding(10.dp).fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally) {
                     Image(modifier = Modifier
-                        .clip(RoundedCornerShape(40.dp)),
+                        .clip(RoundedCornerShape(40.dp))
+                        .align(Alignment.CenterHorizontally),
                         bitmap = GetGameBitmap(game.Thumbnail),
                         contentDescription = "")
 
                     Spacer(modifier = Modifier.size(10.dp))
-                    Text(text = "name: " + game.GameName)
+                    Text(text = game.GameName,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 30.sp,
+                        textAlign = TextAlign.Center)
                     Spacer(modifier = Modifier.size(10.dp))
-                    Text(text = "release Name: " + game.ReleaseName)
-                    Spacer(modifier = Modifier.size(10.dp))
-                    Text(text = "Version Code: " + game.VersionCode)
-                    Spacer(modifier = Modifier.size(10.dp))
-                    Text(text = "Last Updated: " + game.LastUpdated)
-                    Spacer(modifier = Modifier.size(10.dp))
-                    Text(text = "size: " + RoundByteValue(game.Size))
-                    Spacer(modifier = Modifier.size(10.dp))
-                    if (IsEnoughSpace == null) {
-                        Text(text = "Checking if theres enough space")
-                        Spacer(modifier = Modifier.size(10.dp))
-                    }
 
-                    Row(Modifier.padding(10.dp, 0.dp)) {
-                        if (IsEnoughSpace == true || IsEnoughSpace == null) {
-                            Button(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .weight(0.1F)
-                                    .height(50.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = CustomColorScheme.tertiary,
-                                    contentColor = CustomColorScheme.onSurface
-                                ),
-                                onClick = { OnInstall(game) },
-                            ) { Text(text = "INSTALL") }
-                        } else {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        Text(
+                            text = buildAnnotatedString {
+                                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                    append("Release Name: ")
+                                }
+                                append(game.ReleaseName)
+                            }
+                        )
+                        Spacer(modifier = Modifier.size(10.dp))
+                        Text(
+                            text = buildAnnotatedString {
+                                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                    append("Version Code: ")
+                                }
+                                append(game.VersionCode)
+                            }
+                        )
+                        Spacer(modifier = Modifier.size(10.dp))
+                        Text(
+                            text = buildAnnotatedString {
+                                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                    append("Last Updated: ")
+                                }
+                                append(game.LastUpdated)
+                            }
+                        )
+                        Spacer(modifier = Modifier.size(10.dp))
+                        Text(
+                            text = buildAnnotatedString {
+                                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                    append("Size: ")
+                                }
+                                append(RoundByteValue(game.Size))
+                            }
+                        )
+                        Spacer(modifier = Modifier.size(10.dp))
+                        if (IsEnoughSpace == null) {
+                            Text(text = "Checking if theres enough space")
+                            Spacer(modifier = Modifier.size(10.dp))
+                        }
+
+                        Row(Modifier.padding(10.dp, 0.dp)) {
+                            if (IsEnoughSpace == true || IsEnoughSpace == null) {
+                                Button(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(0.1F)
+                                        .height(50.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = CustomColorScheme.tertiary,
+                                        contentColor = CustomColorScheme.onSurface
+                                    ),
+                                    onClick = { OnInstall(game) },
+                                ) { Text(text = "INSTALL") }
+                            } else {
+                                Button(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(0.1F)
+                                        .height(50.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = CustomColorScheme.error,
+                                        contentColor = CustomColorScheme.onSurface
+                                    ),
+                                    onClick = {},
+                                ) { Text(text = "NO SPACE") }
+                            }
+
+                            Spacer(modifier = Modifier.size(10.dp))
                             Button(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -151,25 +212,12 @@ fun gameInfoPage(game: Game?, OnInstall: (Game) -> Unit, OnClose: () -> Unit) {
                                     containerColor = CustomColorScheme.error,
                                     contentColor = CustomColorScheme.onSurface
                                 ),
-                                onClick = {},
-                            ) { Text(text = "NO SPACE") }
+                                onClick = { OnClose() },
+                            ) { Text(text = "CLOSE") }
+
                         }
-
                         Spacer(modifier = Modifier.size(10.dp))
-                        Button(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(0.1F)
-                                .height(50.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = CustomColorScheme.error,
-                                contentColor = CustomColorScheme.onSurface
-                            ),
-                            onClick = { OnClose() },
-                        ) { Text(text = "CLOSE") }
-
                     }
-                    Spacer(modifier = Modifier.size(10.dp))
                 }
             }
         }
