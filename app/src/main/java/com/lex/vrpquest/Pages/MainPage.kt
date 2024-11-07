@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.lex.vrpquest.CustomColorScheme
@@ -64,7 +65,7 @@ fun MainPage(Gamelist: MutableList<Game>, searchText: String, onClick: (Game) ->
                         endY = scrollfloat.toFloat()
                     ),
                     blendMode = BlendMode.DstIn) },
-        columns = GridCells.Adaptive(minSize = 200.dp),
+        columns = GridCells.Adaptive(minSize = 250.dp),
         state = lazygridstate
     ) {
         Log.i(TAG, Gamelist.count().toString())
@@ -86,11 +87,12 @@ fun MainPage(Gamelist: MutableList<Game>, searchText: String, onClick: (Game) ->
                     Spacer(modifier = Modifier.size(10.dp))
                     Text(
                         text = game.GameName,
+                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(20.dp, vertical = 0.dp),
                         maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = RoundByteValue(game.Size),
+                        text = RoundByteValue(game.Size) + " - v" + game.VersionCode,
                         modifier = Modifier.padding(20.dp, vertical = 0.dp),
                         maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )
