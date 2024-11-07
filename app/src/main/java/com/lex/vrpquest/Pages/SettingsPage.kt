@@ -217,6 +217,23 @@ fun SettingsPage() {
             RoundDivider()
             DatastoreTextSwitch(context, "Stop device from going to sleep while there is a download in progress", id = "ShizukuAvoidSleep")
         }
+
+        // VERSION INDICATOR
+        settingsGroup() {
+            val context = LocalContext.current
+            val packageInfo = remember {
+                context.packageManager.getPackageInfo(context.packageName, 0)
+            }
+
+            val versionCode =
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    packageInfo.longVersionCode
+                } else {
+                    packageInfo.versionCode.toLong()
+                }
+
+            settingsText("VRPquest v${packageInfo.versionName} - Build $versionCode")
+        }
     }
 }
 
