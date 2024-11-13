@@ -190,7 +190,9 @@ class MainActivity : ComponentActivity() {
 
                                 if(Gamelist.isEmpty()) {
                                     FullText("Game List is currently empty, gamedata is either  deleted or there was an issue connecting to the VRP server")
-                                } else {  MainPage(Gamelist, searchText, {GameInfo = it}) } //MAINPAGE ALWAYS COMPOSED
+                                } else {
+                                    MainPage(Gamelist, searchText, {GameInfo = it})
+                                } //MAINPAGE ALWAYS COMPOSED
 
                                 if (Page != 0) { // OVERLAY OVER MAINPAGE
                                     Box(modifier = Modifier

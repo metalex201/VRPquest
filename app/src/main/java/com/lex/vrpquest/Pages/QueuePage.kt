@@ -3,6 +3,7 @@ package com.lex.vrpquest.Pages
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -26,6 +29,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,7 +37,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
@@ -46,6 +55,8 @@ import com.lex.vrpquest.Managers.QueueGame
 import com.lex.vrpquest.Managers.RemoveQueueGame
 import com.lex.vrpquest.Utils.GroupDropDown
 import com.lex.vrpquest.Utils.RoundDivider
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 @Composable
@@ -56,8 +67,31 @@ fun QueuePage(Queuelist: MutableList<QueueGame>, Donatelist: MutableList<DonateQ
     var isDonatelistDD by remember { mutableStateOf(true) }
     var isHalffinishDD by remember { mutableStateOf(true) }
 
+    val scrollState = rememberLazyListState()
+    var scrollfloat by remember { mutableStateOf(((scrollState.firstVisibleItemIndex / 5 ) * 226) + scrollState.firstVisibleItemScrollOffset) }
+    LaunchedEffect(scrollState.firstVisibleItemIndex, scrollState.firstVisibleItemScrollOffset) {
+        scrollfloat = ((scrollState.firstVisibleItemIndex / 1 ) * 226) + scrollState.firstVisibleItemScrollOffset
+        if (scrollfloat > 100) {scrollfloat = 100}
+    }
 
     LazyColumn(
+        state = scrollState,
+        modifier = Modifier
+            .graphicsLayer { alpha = 0.99f }
+            .drawWithContent {
+                val colors = listOf(
+                    Color.Transparent,
+                    Color.Black
+                )
+                drawContent()
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors, startY = 0f,
+                        endY = scrollfloat.toFloat()
+                    ),
+                    blendMode = BlendMode.DstIn
+                )
+            },
     ) {
         if(!Donatelist.isEmpty()) {
             item{
