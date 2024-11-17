@@ -1,10 +1,12 @@
 package com.lex.vrpquest.Utils
 
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
@@ -34,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,13 +47,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.PlatformSpanStyle
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontSynthesis
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.intl.LocaleList
+import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextGeometricTransform
+import androidx.compose.ui.text.withLink
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import com.lex.vrpquest.CustomColorScheme
 import java.io.File
@@ -347,4 +369,48 @@ fun isPermissionAllowed(context: Context, permission:String): Boolean {
         (packageInfo.requestedPermissionsFlags[index] and PackageInfo.REQUESTED_PERMISSION_GRANTED) != 0
     }
     if (list.contains(permission)) { return true } else {return false}
+}
+
+
+//Modified text element that has hyperlink support
+@Composable
+fun LinkStringBuilder(
+    text: String
+): AnnotatedString {
+    val context = LocalContext.current
+    val pattern = """\bhttps?://[^\s()<>]+(?:\([\w\d]+\)|[^[:punct:]\s])""".toRegex()
+
+    val tempRegex = splitByRegex(text, pattern)
+    return tempRegex
+}
+
+fun splitByRegex(text: String, regex: Regex): AnnotatedString {
+    val matches = regex.findAll(text).map { Pair(it.range, it.value)}.toList()
+    val result:MutableList<String> = mutableListOf("")
+    var lastEnd = 0
+    val annotatedString = buildAnnotatedString {
+        for (match in matches) {
+            val before = text.substring(lastEnd, match.first.start)
+            val after = text.substring(match.first.endInclusive + 1)
+
+            append(before)
+
+            withLink(LinkAnnotation.Url(url = match.second)) {
+                withStyle(
+                    SpanStyle(color = CustomColorScheme.tertiary)
+                ) {
+                    append(match.second)
+                }
+            }
+
+            append(after)
+
+            lastEnd = match.first.endInclusive + 1
+        }
+        if (matches.isEmpty()) {
+            append(text)
+        }
+    }
+
+    return annotatedString
 }

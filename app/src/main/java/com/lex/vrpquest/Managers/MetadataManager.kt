@@ -31,6 +31,7 @@ class Game(
     val Thumbnail: String,
     val Size:Int,
     var IsInstalled:Boolean,
+    var notes: String
 )
 
 @OptIn(ExperimentalEncodingApi::class)
@@ -47,10 +48,12 @@ fun MetadataInitialize(context:Context, state: (Int) -> Unit, progress: (Float) 
         try {
             testjson = JSONObject(URL("https://raw.githubusercontent.com/vrpyou/quest/main/vrp-public.json").readText())
         } catch (E:Exception) {
+            println("exception ${E.message}, ${E.cause}, ${E.stackTrace}")
             disableSSLCertificateChecking()
             testjson = JSONObject(URL("https://vrpirates.wiki/downloads/vrp-public.json").readText())
             enableSSLCertificateChecking()
         }
+
 
         val baseUri = testjson.getString("baseUri")
         val password = String(Base64.decode(testjson.getString("password")))
@@ -117,10 +120,14 @@ fun SortGameList(context: Context, progress: (Float) -> Unit):ArrayList<Game> {
         EmptyThumb.eraseColor(CustomColorScheme.background.toArgb())
         val options = BitmapFactory.Options()
         options.inJustDecodeBounds = true
+
+
         gamedata.forEachIndexed  { index, value ->
             var tempvalue = value.split(";")
             if (tempvalue.size > 4) {
                 val thumbnail = "${externalFilesDir}/meta/.meta/thumbnails/${tempvalue[2]}.jpg"
+                val notesFile = File("${externalFilesDir}/meta/.meta/notes/${tempvalue[1]}.txt")
+
                 gamelist.add(
                     Game(
                     GameName = tempvalue[0],
@@ -130,7 +137,8 @@ fun SortGameList(context: Context, progress: (Float) -> Unit):ArrayList<Game> {
                     LastUpdated = tempvalue[4],
                     Size = tempvalue[5].toInt(),
                     Thumbnail = if (File(thumbnail).exists()) thumbnail else "",
-                    IsInstalled = false
+                    IsInstalled = false,
+                    notes = if (notesFile.exists()) { notesFile.readText() } else ""
                 )
                 )
             }
