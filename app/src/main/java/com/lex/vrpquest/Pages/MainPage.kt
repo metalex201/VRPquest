@@ -43,13 +43,23 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
-fun MainPage(Gamelist: MutableList<Game>, searchText: String, onClick: (Game) -> Unit) {
+fun MainPage(Gamelist: MutableList<Game>, searchText: String, onClick: (Game) -> Unit, sortType:Int, reverersed:Boolean) {
     val lazygridstate = rememberLazyGridState()
     var scrollfloat by remember { mutableStateOf(((lazygridstate.firstVisibleItemIndex / 5 ) * 226) + lazygridstate.firstVisibleItemScrollOffset) }
     LaunchedEffect(lazygridstate.firstVisibleItemIndex, lazygridstate.firstVisibleItemScrollOffset) {
         scrollfloat = ((lazygridstate.firstVisibleItemIndex / 1 ) * 226) + lazygridstate.firstVisibleItemScrollOffset
         if (scrollfloat > 100) {scrollfloat = 100}
     }
+
+    var tempsortlist = Gamelist.filter { it.GameName.contains(searchText, ignoreCase = true) }
+
+    when(sortType) {
+        1 -> { tempsortlist = tempsortlist.sortedBy { it.VersionCode } }
+        2 -> { tempsortlist = tempsortlist.sortedBy { it.Size } }
+        3 -> { tempsortlist = tempsortlist.sortedBy { it.LastUpdated } }
+    }
+
+    if (reverersed) { tempsortlist = tempsortlist.reversed() }
 
     LazyVerticalGrid(
         modifier = Modifier
@@ -68,8 +78,7 @@ fun MainPage(Gamelist: MutableList<Game>, searchText: String, onClick: (Game) ->
         columns = GridCells.Adaptive(minSize = 250.dp),
         state = lazygridstate
     ) {
-        Log.i(TAG, Gamelist.count().toString())
-        items(Gamelist.filter { it.GameName.contains(searchText, ignoreCase = true) }) { game ->
+        items(tempsortlist) { game ->
             Box(modifier = Modifier
                 .fillMaxWidth()
                 .padding(10.dp)

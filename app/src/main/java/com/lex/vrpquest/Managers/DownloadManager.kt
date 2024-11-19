@@ -21,6 +21,7 @@ import com.lex.vrpquest.Utils.canUseShizuku
 import com.lex.vrpquest.Utils.downloadFile
 import com.lex.vrpquest.Utils.getUrlFileList
 import com.lex.vrpquest.Utils.getUrlFileSize
+import com.lex.vrpquest.Utils.postMetrics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -96,6 +97,16 @@ fun Startinstall(
         val game = gamelist.firstOrNull()
         if (game != null && !game.IsActive.value) {
             game.IsActive.value = true
+
+            //UPDATE STATISTIC API
+            GlobalScope.launch {
+                try {
+                    postMetrics(game.game.PackageName, game.game.VersionCode)
+                } catch (E:Exception) {
+                    println(E.message)
+                }
+            }
+
 
             //AVOID SLEEP
 

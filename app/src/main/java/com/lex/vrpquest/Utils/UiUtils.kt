@@ -7,7 +7,10 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,17 +23,26 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -71,6 +83,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextGeometricTransform
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import com.lex.vrpquest.CustomColorScheme
@@ -78,11 +91,12 @@ import java.io.File
 
 @Composable
 fun TextFieldElement(modifier: Modifier, value: String, onValueChange: (String) -> Unit, placeholder: String) {
-    Box(modifier = Modifier.fillMaxWidth()) {
+    Box(modifier = Modifier) {
         TextField(
             modifier = modifier,
             value = value,
             onValueChange = onValueChange,
+            maxLines = 1,
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
@@ -94,31 +108,93 @@ fun TextFieldElement(modifier: Modifier, value: String, onValueChange: (String) 
             placeholder = {
                 Text(text = placeholder,
                     modifier
-                        .fillMaxWidth()
                         .fillMaxHeight()
                         .align(Alignment.CenterStart), color = CustomColorScheme.onSurface)
             }
         )
     }
 }
+
 @Composable
-fun SearchBar(modifier: Modifier, value: String, onValueChange: (String) -> Unit, placeholder: String) {
+fun SearchBar(modifier: Modifier, value: String, onValueChange: (String) -> Unit, placeholder: String,sortChange: (Int) -> Unit, reverseChange: (Boolean) -> Unit) {
     Box(modifier = modifier
+        .wrapContentWidth()
         .fillMaxHeight()
-        .fillMaxWidth()
         .clip(CircleShape)
         .background(CustomColorScheme.surface)) {
-        TextFieldElement(
-            modifier = Modifier
-                .fillMaxSize()
-                .align(Alignment.Center)
-                .clip(CircleShape),
-            value = value,
-            onValueChange = onValueChange,
-            placeholder)
 
+        var expanded by remember { mutableStateOf(false) }
+        var reversed by remember { mutableStateOf(false) }
+        val context = LocalContext.current
+
+        Row(Modifier.fillMaxSize()) {
+            Box(Modifier.weight(0.1F).fillMaxSize()) {
+                TextFieldElement(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.CenterStart)
+                        .clip(CircleShape),
+                    value = value,
+                    onValueChange = onValueChange,
+                    placeholder
+                )
+            }
+            Box(Modifier.aspectRatio(1F).fillMaxSize()) {
+                IconButton(
+                    modifier = Modifier.align(Alignment.Center),
+                    onClick = { expanded = !expanded }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More"
+                    )
+                }
+                DropdownMenu(
+                    shape = RoundedCornerShape(40.dp),
+                    offset = DpOffset(x = -65.dp, y = 15.dp),
+                    containerColor = CustomColorScheme.surface,
+                    modifier = Modifier.align(Alignment.TopStart),
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    Row(
+                        Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(10.dp)) {
+                        Text(text = "Sort by", modifier = Modifier.align(Alignment.CenterVertically))
+                        IconButton(
+                            modifier = Modifier.align(Alignment.CenterVertically),
+                            onClick = {
+                                reversed = !reversed
+                                reverseChange(reversed)
+                            }) {
+                            Icon(
+                                imageVector = Icons.Rounded.Refresh,
+                                contentDescription = "More"
+                            )
+                        }
+                    }
+                    DropdownMenuItem(
+                        text = { Text("name") },
+                        onClick = { sortChange(0) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("version") },
+                        onClick = { sortChange(1) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("size") },
+                        onClick = { sortChange(2) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("date") },
+                        onClick = { sortChange(3) }
+                    )
+                }
+            }
+        }
     }
 }
+
 @Composable
 fun FullText(value: String) {
     Box(modifier = Modifier
@@ -144,6 +220,7 @@ fun TextBar(modifier: Modifier, value: String) {
     }
 }
 
+
 @Composable
 fun CircleButton(
     modifier:Modifier = Modifier,
@@ -152,17 +229,17 @@ fun CircleButton(
     onClick: () -> Unit,
     IsDoted: Boolean = false,
     DotColor: Color = CustomColorScheme.tertiary
-) {
-    Box(modifier = modifier
-        .fillMaxHeight()
-        .aspectRatio(1f)
     ) {
-        Box(modifier = Modifier
-            .fillMaxSize()
+        Box(modifier = modifier
+            .fillMaxHeight()
             .aspectRatio(1f)
-            .clip(CircleShape)
-            .background(color = color)
-            .clickable { onClick() },
+        ) {
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .aspectRatio(1f)
+                .clip(CircleShape)
+                .background(color = color)
+                .clickable { onClick() },
         ) { Icon(
             modifier = Modifier.align(Alignment.Center),
             imageVector = Icon,

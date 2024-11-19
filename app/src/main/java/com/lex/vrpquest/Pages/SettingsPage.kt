@@ -77,8 +77,6 @@ fun SettingsPage() {
     LaunchedEffect(scrollState) {
         GlobalScope.launch() {
             while (true) {
-                println("scrollState" + scrollState.value)
-                println("scrollfloat" + scrollfloat)
                 if (scrollState.value > 100) {scrollfloat = 100F} else {
                     scrollfloat = scrollState.value.toFloat()
                 }

@@ -56,6 +56,8 @@ import com.lex.vrpquest.Managers.Game
 import com.lex.vrpquest.Managers.QueueGame
 import com.lex.vrpquest.Managers.SortGameList
 import com.lex.vrpquest.Managers.Startinstall
+import com.lex.vrpquest.Managers.disableSSLCertificateChecking
+import com.lex.vrpquest.Managers.enableSSLCertificateChecking
 import com.lex.vrpquest.Pages.DonatePage
 import com.lex.vrpquest.Pages.LoadPage
 import com.lex.vrpquest.Pages.MainPage
@@ -69,7 +71,11 @@ import com.lex.vrpquest.Utils.REQUEST_PERMISSION_RESULT_LISTENER
 import com.lex.vrpquest.Utils.SearchBar
 import com.lex.vrpquest.Utils.SettingGetStringSet
 import com.lex.vrpquest.Utils.TextBar
+import com.lex.vrpquest.Utils.postMetrics
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
@@ -137,6 +143,8 @@ class MainActivity : ComponentActivity() {
             }
 
             var searchText by remember { mutableStateOf("") }
+            var sortType by remember { mutableStateOf(0) }
+            var sortReversed by remember { mutableStateOf(false) }
 
             MaterialTheme(colorScheme = CustomColorScheme) {
                 Surface(modifier = Modifier
@@ -165,7 +173,7 @@ class MainActivity : ComponentActivity() {
 
                                     when(Page) {
                                         0 -> {
-                                            SearchBar(Modifier.weight(0.1f), searchText, {searchText = it}, "Search here")
+                                            SearchBar(Modifier.weight(0.1f), searchText, {searchText = it}, "Search here", {sortType = it},  {sortReversed = it})
                                         }
                                         1 -> {
                                             TextBar(Modifier.weight(0.1f), "Queue List")
@@ -191,7 +199,7 @@ class MainActivity : ComponentActivity() {
                                 if(Gamelist.isEmpty()) {
                                     FullText("Game List is currently empty, gamedata is either  deleted or there was an issue connecting to the VRP server")
                                 } else {
-                                    MainPage(Gamelist, searchText, {GameInfo = it})
+                                    MainPage(Gamelist, searchText, {GameInfo = it}, sortType, sortReversed)
                                 } //MAINPAGE ALWAYS COMPOSED
 
                                 if (Page != 0) { // OVERLAY OVER MAINPAGE

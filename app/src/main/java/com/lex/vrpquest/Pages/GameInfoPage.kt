@@ -149,7 +149,7 @@ fun gameInfoPage(game: Game?, OnInstall: (Game) -> Unit, OnClose: () -> Unit) {
                     }
                     Spacer(modifier = Modifier.size(10.dp))
 
-                    Row ( if (game.notes != "") Modifier.height(200.dp) else Modifier.height(125.dp)
+                    Row ( if (game.notes != "") Modifier.height(200.dp) else Modifier
                     ) {
                         Text(
                             modifier = Modifier
