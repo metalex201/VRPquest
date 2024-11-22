@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.lex.vrpquest.CustomColorScheme
 import com.lex.vrpquest.Utils.DatastoreTextSwitch
 import com.lex.vrpquest.Utils.IsShizukuGranted
 import com.lex.vrpquest.MainActivity
@@ -32,7 +33,6 @@ import com.lex.vrpquest.Utils.RoundDivider
 import com.lex.vrpquest.Utils.SettingGetBoolean
 import com.lex.vrpquest.Utils.SettingGetSting
 import com.lex.vrpquest.Utils.SettingStoreBoolean
-import com.lex.vrpquest.Utils.SettingStoreSting
 import com.lex.vrpquest.Utils.SettingStoreStringSet
 import com.lex.vrpquest.Utils.SettingsTextButton
 import com.lex.vrpquest.Utils.SettingsTextField
@@ -41,6 +41,10 @@ import com.lex.vrpquest.Utils.isPackageInstalled
 import com.lex.vrpquest.Utils.settingsGroup
 import com.lex.vrpquest.Utils.settingsText
 import com.lex.vrpquest.Managers.testfpt
+import com.lex.vrpquest.Utils.SettingGetStringSet
+import com.lex.vrpquest.Utils.SettingStoreString
+import com.lex.vrpquest.Utils.SettingsTextDropdown
+import com.lex.vrpquest.Utils.SettingsTextSwitch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -51,7 +55,7 @@ import java.io.File
 
 @SuppressLint("CoroutineCreationDuringComposition")
 @Composable
-fun SettingsPage() {
+fun SettingsPage(updatePage: () -> Unit) {
     // Retrieve the context from Compose
     val context = LocalContext.current
     val activity = (LocalContext.current as Activity)
@@ -207,9 +211,9 @@ fun SettingsPage() {
             if (IsFTP) {
                 SettingsTextButton("Disconnect from the FTP server", "DISCONNECT") {
                     SettingStoreBoolean(context, "isPrivateFtp", false)
-                    SettingStoreSting(context, "username", "")
-                    SettingStoreSting(context, "pass", "")
-                    SettingStoreSting(context, "host", "")
+                    SettingStoreString(context, "username", "")
+                    SettingStoreString(context, "pass", "")
+                    SettingStoreString(context, "host", "")
                 }
             } else {
                 SettingsTextButton( buttonText, "CONNECT") {
@@ -217,9 +221,9 @@ fun SettingsPage() {
                         IsFTP = testfpt(username, password, host)
                         if (IsFTP == true) {
                             SettingStoreBoolean(context, "isPrivateFtp", true)
-                            SettingStoreSting(context, "username", username)
-                            SettingStoreSting(context, "pass", password)
-                            SettingStoreSting(context, "host", host)
+                            SettingStoreString(context, "username", username)
+                            SettingStoreString(context, "pass", password)
+                            SettingStoreString(context, "host", host)
                         } else {
                             buttonText = "Connection failed, check if everything is written correctly and try again"
                         }
@@ -250,6 +254,23 @@ fun SettingsPage() {
             settingsText("Shizuku Settings")
             RoundDivider()
             DatastoreTextSwitch(context, "Stop device from going to sleep while there is a download in progress", id = "ShizukuAvoidSleep")
+        }
+
+        //UI SETTINGS
+
+        settingsGroup() {
+
+            settingsText("UI Settings")
+
+            RoundDivider()
+
+
+            SettingsTextDropdown("Change the theme (requires restart) ",
+                SettingGetSting(context, "theme") ?: "dark",
+                listOf("dark", "light", "transparent"), {
+                    SettingStoreString(context, "theme", it)
+                    updatePage()
+                })
         }
 
         // VERSION INDICATOR

@@ -128,7 +128,10 @@ fun SearchBar(modifier: Modifier, value: String, onValueChange: (String) -> Unit
         val context = LocalContext.current
 
         Row(Modifier.fillMaxSize()) {
-            Box(Modifier.weight(0.1F).fillMaxSize()) {
+            Box(
+                Modifier
+                    .weight(0.1F)
+                    .fillMaxSize()) {
                 TextFieldElement(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -139,13 +142,17 @@ fun SearchBar(modifier: Modifier, value: String, onValueChange: (String) -> Unit
                     placeholder
                 )
             }
-            Box(Modifier.aspectRatio(1F).fillMaxSize()) {
+            Box(
+                Modifier
+                    .aspectRatio(1F)
+                    .fillMaxSize()) {
                 IconButton(
                     modifier = Modifier.align(Alignment.Center),
                     onClick = { expanded = !expanded }) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
-                        contentDescription = "More"
+                        contentDescription = "More",
+                        tint = CustomColorScheme.onSurface
                     )
                 }
                 DropdownMenu(
@@ -160,7 +167,9 @@ fun SearchBar(modifier: Modifier, value: String, onValueChange: (String) -> Unit
                         Modifier
                             .align(Alignment.CenterHorizontally)
                             .padding(10.dp)) {
-                        Text(text = "Sort by", modifier = Modifier.align(Alignment.CenterVertically))
+                        Text(text = "Sort by",
+                            modifier = Modifier.align(Alignment.CenterVertically),
+                            color = CustomColorScheme.onSurface)
                         IconButton(
                             modifier = Modifier.align(Alignment.CenterVertically),
                             onClick = {
@@ -169,24 +178,25 @@ fun SearchBar(modifier: Modifier, value: String, onValueChange: (String) -> Unit
                             }) {
                             Icon(
                                 imageVector = Icons.Rounded.Refresh,
-                                contentDescription = "More"
+                                contentDescription = "More",
+                                tint = CustomColorScheme.onSurface
                             )
                         }
                     }
                     DropdownMenuItem(
-                        text = { Text("name") },
+                        text = { Text("name", color = CustomColorScheme.onSurface) },
                         onClick = { sortChange(0) }
                     )
                     DropdownMenuItem(
-                        text = { Text("version") },
+                        text = { Text("version", color = CustomColorScheme.onSurface) },
                         onClick = { sortChange(1) }
                     )
                     DropdownMenuItem(
-                        text = { Text("size") },
+                        text = { Text("size", color = CustomColorScheme.onSurface) },
                         onClick = { sortChange(2) }
                     )
                     DropdownMenuItem(
-                        text = { Text("date") },
+                        text = { Text("date", color = CustomColorScheme.onSurface) },
                         onClick = { sortChange(3) }
                     )
                 }
@@ -197,13 +207,25 @@ fun SearchBar(modifier: Modifier, value: String, onValueChange: (String) -> Unit
 
 @Composable
 fun FullText(value: String) {
+
     Box(modifier = Modifier
-        .fillMaxSize()
-        .background(CustomColorScheme.background)) {
+        .fillMaxSize()) {
+        Box(modifier = Modifier
+            .align(Alignment.Center)
+            .clip(RoundedCornerShape(40.dp))
+            .background(CustomColorScheme.surface)) {
+            Text(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(20.dp),
+                text = value, textAlign = TextAlign.Center,
+                color = CustomColorScheme.onSurface)
+        }
         Text(
             modifier = Modifier
                 .align(Alignment.Center),
-            text = value, textAlign = TextAlign.Center)
+            text = value, textAlign = TextAlign.Center,
+            color = CustomColorScheme.onSurface)
     }
 }
 
@@ -216,7 +238,8 @@ fun TextBar(modifier: Modifier, value: String) {
         Text(
             modifier = Modifier
                 .align(Alignment.Center),
-            text = value, textAlign = TextAlign.Center,)
+            text = value, textAlign = TextAlign.Center,
+            color = CustomColorScheme.onSurface)
     }
 }
 
@@ -243,7 +266,8 @@ fun CircleButton(
         ) { Icon(
             modifier = Modifier.align(Alignment.Center),
             imageVector = Icon,
-            contentDescription = "")
+            contentDescription = "",
+            tint = CustomColorScheme.onSurface)
         }
         if (IsDoted) {
             Box(modifier = Modifier
@@ -265,7 +289,8 @@ fun settingsText(text:String) {
         .background(color = CustomColorScheme.surface)
     ) {
         Text(modifier = Modifier.padding(25.dp),
-            text = text)
+            text = text,
+            color = CustomColorScheme.onSurface)
     }
 }
 
@@ -287,7 +312,8 @@ fun SettingsTextButton(text:String, buttontext:String, onClick: () -> Unit) {
         Text(text = text,
             Modifier
                 .align(Alignment.CenterVertically)
-                .weight(1f))
+                .weight(1f),
+            color = CustomColorScheme.onSurface)
         Spacer(modifier = Modifier
             .fillMaxWidth()
             .weight(0.1f))
@@ -298,7 +324,7 @@ fun SettingsTextButton(text:String, buttontext:String, onClick: () -> Unit) {
             colors = ButtonDefaults.buttonColors(
                 containerColor = CustomColorScheme.tertiary,
                 contentColor = CustomColorScheme.onSurface),) {
-            Text(text = buttontext)
+            Text(text = buttontext, color = CustomColorScheme.onSurface)
         }
     }
 }
@@ -309,7 +335,8 @@ fun SettingsTextSwitch(text:String, switchValue:Boolean, onClick: () -> Unit) {
         Text(text = text,
             Modifier
                 .align(Alignment.CenterVertically)
-                .weight(1f),)
+                .weight(1f),
+            color = CustomColorScheme.onSurface)
         Spacer(modifier = Modifier
             .fillMaxWidth()
             .weight(0.1f))
@@ -322,6 +349,56 @@ fun SettingsTextSwitch(text:String, switchValue:Boolean, onClick: () -> Unit) {
                 uncheckedBorderColor = CustomColorScheme.onSurface))
     }
 }
+
+@Composable
+fun SettingsTextDropdown(titleText:String, text:String, list:List<String>, onclick: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    var temptext by remember { mutableStateOf(text) }
+
+    Row(modifier = Modifier.padding(25.dp)) {
+        Text(text = titleText,
+            Modifier
+                .align(Alignment.CenterVertically)
+                .weight(1f),
+            color = CustomColorScheme.onSurface)
+        Spacer(modifier = Modifier
+            .fillMaxWidth()
+            .weight(0.1f))
+        Button(
+            onClick = { expanded = !expanded },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = CustomColorScheme.tertiary,
+                contentColor = CustomColorScheme.onSurface),
+            ) {
+            Text(text = temptext,
+                Modifier.align(Alignment.CenterVertically),
+                color = CustomColorScheme.onSurface
+            )
+        }
+
+        DropdownMenu(
+            shape = RoundedCornerShape(40.dp),
+            offset = DpOffset(x = -65.dp, y = 15.dp),
+            containerColor = CustomColorScheme.surface,
+            modifier = Modifier.align(Alignment.CenterVertically),
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            list.forEach{
+                DropdownMenuItem(
+                    text = { Text(it, color = CustomColorScheme.onSurface) },
+                    onClick = {
+                        temptext = it
+                        expanded = false
+                        onclick(it)
+                    }
+                )
+            }
+        }
+    }
+}
+
+
 
 @Composable
 fun DatastoreTextSwitch(context: Context, text:String, id:String, defaultValue:Boolean = false) {
@@ -408,17 +485,19 @@ fun GroupDropDown(value: Boolean, onChange: (Boolean) -> Unit, text:String) {
             Icon(modifier = Modifier
                 .clip(RoundedCornerShape(50.dp))
                 .size(35.dp)
-                .clickable{
+                .clickable {
                     onChange(!value)
                 }, imageVector = if (value) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowUp,
-                contentDescription = ""
+                contentDescription = "",
+                tint = CustomColorScheme.onSurface
             )
 
             Text(modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.Center),
                 textAlign = TextAlign.Center,
-                text = text)
+                text = text,
+                color = CustomColorScheme.onSurface)
         }
         GroupDivider()
     }

@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 
-fun SettingStoreSting(context:Context, id:String, data:String) {
+fun SettingStoreString(context:Context, id:String, data:String) {
     val setting = stringSetPreferencesKey(id)
     runBlocking {
         context.dataStore.edit { settings ->

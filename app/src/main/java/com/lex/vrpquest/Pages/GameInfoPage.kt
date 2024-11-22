@@ -144,7 +144,8 @@ fun gameInfoPage(game: Game?, OnInstall: (Game) -> Unit, OnClose: () -> Unit) {
                             text = game.GameName,
                             fontWeight = FontWeight.Bold,
                             fontSize = 30.sp,
-                            textAlign = TextAlign.Center)
+                            textAlign = TextAlign.Center,
+                            color = CustomColorScheme.onSurface)
                         Spacer(modifier = Modifier.size(10.dp))
                     }
                     Spacer(modifier = Modifier.size(10.dp))
@@ -177,14 +178,17 @@ fun gameInfoPage(game: Game?, OnInstall: (Game) -> Unit, OnClose: () -> Unit) {
                                     append("Size: ")
                                 }
                                 append(RoundByteValue(game.Size))
-                            }
+                            },
+                            color = CustomColorScheme.onSurface
                         )
                         if(game.notes != "") {
                             Spacer(modifier = Modifier.size(10.dp))
                             Column(modifier = Modifier
                                 .weight(0.5F).verticalScroll(rememberScrollState())
                             )  {
-                                Text(text = LinkStringBuilder(game.notes))
+                                Text(
+                                    text = LinkStringBuilder(game.notes),
+                                    color = CustomColorScheme.onSurface)
                             }
                         }
                     }
@@ -206,7 +210,6 @@ fun gameInfoPage(game: Game?, OnInstall: (Game) -> Unit, OnClose: () -> Unit) {
                         } else {
                             Button(
                                 modifier = Modifier
-
                                     .weight(0.1F)
                                     .height(50.dp),
                                 colors = ButtonDefaults.buttonColors(
@@ -214,7 +217,7 @@ fun gameInfoPage(game: Game?, OnInstall: (Game) -> Unit, OnClose: () -> Unit) {
                                     contentColor = CustomColorScheme.onSurface
                                 ),
                                 onClick = {},
-                            ) { Text(text = "NO SPACE") }
+                            ) { Text(text = "NO SPACE" ) }
                         }
 
                         Spacer(modifier = Modifier.size(10.dp))

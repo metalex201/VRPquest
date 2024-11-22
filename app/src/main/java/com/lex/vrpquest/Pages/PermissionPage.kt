@@ -41,7 +41,7 @@ import kotlinx.coroutines.delay
 
 @RequiresApi(Build.VERSION_CODES.R)
 @Composable
-fun PermissionPage() {
+fun PermissionPage(page:Int, changePage:(Int) -> Unit) {
     val context = LocalContext.current
     val activity = (LocalContext.current as Activity)
     var InstallApkPerm by remember { mutableStateOf(context.packageManager.canRequestPackageInstalls()) }
@@ -73,6 +73,7 @@ fun PermissionPage() {
         }
     }
     if (!(InstallApkPerm && FileAccessPerm)) {
+        changePage(5)
         Box(modifier = Modifier
             .fillMaxSize()
             .background(color = CustomColorScheme.background)
@@ -86,7 +87,7 @@ fun PermissionPage() {
                     CustomColorScheme.surface
                 )) {
                 Column(Modifier.padding(20.dp)) {
-                    Text(text = "These permissions are required by this application:")
+                    Text(text = "These permissions are required by this application:", color = CustomColorScheme.onSurface)
                     Spacer(modifier = Modifier.size(20.dp))
                     Text(modifier = Modifier.padding(20.dp,0.dp),
                         color = if (InstallApkPerm) CustomColorScheme.tertiary else CustomColorScheme.error,
@@ -121,10 +122,10 @@ fun PermissionPage() {
                                 contentColor = CustomColorScheme.onSurface
                             ),
                             onClick = { System.out.close() },
-                        ) { Text(text = "EXIT") }
+                        ) { Text(text = "EXIT", color = CustomColorScheme.onSurface) }
                     }
                 }
             }
         }
-    }
+    } else { if (page == 5) {changePage(0)}}
 }

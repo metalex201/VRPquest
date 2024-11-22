@@ -86,7 +86,8 @@ fun MainPage(Gamelist: MutableList<Game>, searchText: String, onClick: (Game) ->
                 .background(
                     CustomColorScheme.surface
                 )
-                .clickable { onClick(game) }) {
+                .clickable { onClick(game) },
+            ) {
                 Column(Modifier.padding(10.dp)) {
                     Image(modifier = Modifier
                         .fillMaxWidth()
@@ -99,11 +100,13 @@ fun MainPage(Gamelist: MutableList<Game>, searchText: String, onClick: (Game) ->
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(20.dp, vertical = 0.dp),
                         maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        color = CustomColorScheme.onSurface
                     )
                     Text(
                         text = RoundByteValue(game.Size) + " - v" + game.VersionCode,
                         modifier = Modifier.padding(20.dp, vertical = 0.dp),
                         maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        color = CustomColorScheme.onSurface
                     )
                 }
             }
