@@ -62,7 +62,11 @@ fun LoadPage(Page: () -> Unit, metadata: (ArrayList<Game>) -> Unit) {
                     MetadataInitializeFTP(context, {state = it }, {progress = it}, {metadata(it)})
                 } else {
                     SettingStoreBoolean(context, "isPrivateFtp", false)
+                    try {
                     MetadataInitialize(context, {state = it }, {progress = it}, {metadata(it)})
+                    } catch (E:Exception) {
+                        println("metadata error reason:" + E.message)
+                    }
                 }
             }
             isRun = true
@@ -89,7 +93,7 @@ fun LoadPage(Page: () -> Unit, metadata: (ArrayList<Game>) -> Unit) {
             Column(modifier = Modifier
                 .fillMaxWidth()
                 .padding(50.dp, 25.dp)) {
-                Text(modifier = Modifier.align(Alignment.Start), text = text)
+                Text(modifier = Modifier.align(Alignment.Start), text = text, color = CustomColorScheme.onSurface)
                 Spacer(modifier = Modifier.size(25.dp))
                 LinearProgressIndicator(
                     modifier = Modifier

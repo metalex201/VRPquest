@@ -86,6 +86,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.lex.vrpquest.CustomColorScheme
 import java.io.File
 
@@ -101,6 +102,7 @@ fun TextFieldElement(modifier: Modifier, value: String, onValueChange: (String) 
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
                 focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
                 cursorColor = CustomColorScheme.onSurface),
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Text),
             textStyle = TextStyle(textAlign = TextAlign.Start,

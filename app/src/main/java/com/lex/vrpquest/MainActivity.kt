@@ -3,15 +3,13 @@ package com.lex.vrpquest
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
-import android.hardware.lights.Light
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.ActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -27,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.darkColorScheme
@@ -38,28 +37,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.datastore.core.DataStore
-import rikka.shizuku.Shizuku
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import com.lex.vrpquest.Managers.DonateGame
 import com.lex.vrpquest.Managers.DonateQueue
-import com.lex.vrpquest.Managers.StartDonation
-import com.lex.vrpquest.Managers.getDonateGames
+import com.lex.vrpquest.Managers.DownloadService
 import com.lex.vrpquest.Managers.Game
 import com.lex.vrpquest.Managers.QueueGame
 import com.lex.vrpquest.Managers.SortGameList
+import com.lex.vrpquest.Managers.StartDonation
 import com.lex.vrpquest.Managers.Startinstall
-import com.lex.vrpquest.Managers.disableSSLCertificateChecking
-import com.lex.vrpquest.Managers.enableSSLCertificateChecking
+import com.lex.vrpquest.Managers.getDonateGames
+import com.lex.vrpquest.Managers.isServiceRunning
+import com.lex.vrpquest.Managers.startservice
 import com.lex.vrpquest.Pages.DonatePage
 import com.lex.vrpquest.Pages.LoadPage
 import com.lex.vrpquest.Pages.MainPage
@@ -74,11 +72,10 @@ import com.lex.vrpquest.Utils.SearchBar
 import com.lex.vrpquest.Utils.SettingGetSting
 import com.lex.vrpquest.Utils.SettingGetStringSet
 import com.lex.vrpquest.Utils.TextBar
-import com.lex.vrpquest.Utils.postMetrics
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import rikka.shizuku.Shizuku
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
@@ -148,6 +145,7 @@ class MainActivity : ComponentActivity() {
         //println(ShizAdbCommand("echo testt"))
 
         setContent {
+
             //THEME
 
             var themeid = SettingGetSting(applicationContext, "theme") ?: "dark"
@@ -162,7 +160,7 @@ class MainActivity : ComponentActivity() {
             val test = SettingGetStringSet(applicationContext, "DonateBlacklist")
             println(test)
 
-            var Page by remember { mutableStateOf(intent.getIntExtra("page", 3)) }
+            var Page by remember { mutableStateOf(intent.getIntExtra("page", 2)) }
 
             var GameInfo by remember { mutableStateOf<Game?>(null) }
 
@@ -242,7 +240,9 @@ class MainActivity : ComponentActivity() {
                                 ) {
 
 
-                                    Box(modifier = if(Page == 0) Modifier.fillMaxSize()  else Modifier.fillMaxWidth().alpha(0F)
+                                    Box(modifier = if(Page == 0) Modifier.fillMaxSize()  else Modifier
+                                        .fillMaxWidth()
+                                        .alpha(0F)
                                     ) {
                                         if(Gamelist.isEmpty()) {
                                             FullText("Game List is currently empty, gamedata is either deleted or there was an issue connecting to the VRP server")
@@ -272,7 +272,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    var IsDonated  by remember { mutableStateOf(false) }
                     var donatelist= remember {mutableListOf<DonateGame>()}
 
                     if (Page == 2)
@@ -289,6 +288,17 @@ class MainActivity : ComponentActivity() {
                                 StartDonation(applicationContext, DonateQueueList)
                             }, donatelist)
                     }
+
+                    //downloadViewModel = ViewModelProvider(this).get(DownloadViewModel::class.java)
+                    val liveData = DownloadService._queueList
+                    // Observe the queue list
+                    liveData.observe(this, Observer { queue ->
+                        Queuelist.clear()
+                        if(queue.isNotEmpty()) {
+                            Queuelist.addAll(queue)
+                        }
+                    })
+
                     if (Page == 6) {
                         gameInfoPage(GameInfo, { game ->
                             var IsInQueue = false
@@ -298,8 +308,10 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                             if(!IsInQueue) {
-                                Queuelist.add(QueueGame(game))
-                                Startinstall(applicationContext, Queuelist)
+                                val templist = liveData.value ?: mutableListOf()
+                                templist.add(QueueGame(game))
+                                liveData.postValue(templist)
+                                startservice(applicationContext)
                             }
                             GameInfo = null
                             Page = 0
@@ -311,10 +323,18 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
     override fun onDestroy() {
         super.onDestroy()
         Shizuku.removeRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER)
     }
 }
 
+class ApkActivity : ComponentActivity() {
+    @RequiresApi(Build.VERSION_CODES.R)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+
+        }
+    }
+}

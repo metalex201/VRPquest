@@ -1,5 +1,6 @@
 package com.lex.vrpquest.Managers
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -11,8 +12,13 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.app.ServiceCompat.stopForeground
 import androidx.core.content.ContextCompat.startActivity
 import androidx.core.content.FileProvider
+import androidx.lifecycle.Lifecycle
+import com.lex.vrpquest.ApkActivity
+import com.lex.vrpquest.MainActivity
 import com.lex.vrpquest.Utils.SettingGetBoolean
 import com.lex.vrpquest.Utils.SettingGetSting
 import com.lex.vrpquest.Utils.SevenZipExtract
@@ -76,8 +82,9 @@ fun getFreeStorageSpace(): Long {
 
 fun RemoveQueueGame(index:Int, gamelist:MutableList<QueueGame>) {
     println("index is : $index")
-    if (index == 0) { gamelist[0].IsClosing.value = true } else {
-        gamelist.removeAt(index)
+
+    if (index == 0) {  DownloadService._queueList.value!!.first().IsClosing.value = true } else {
+        DownloadService._queueList.value!!.removeAt(index)
     }
 }
 
@@ -85,7 +92,8 @@ fun RemoveQueueGame(index:Int, gamelist:MutableList<QueueGame>) {
 @OptIn(ExperimentalEncodingApi::class)
 fun Startinstall(
     context: Context,
-    gamelist: MutableList<QueueGame>
+    gamelist: MutableList<QueueGame>,
+    endCallback: () -> Unit
 ) {
     var IsFTP = SettingGetBoolean(context, "isPrivateFtp") ?: false
 
@@ -106,7 +114,6 @@ fun Startinstall(
                     println(E.message)
                 }
             }
-
 
             //AVOID SLEEP
 
@@ -185,7 +192,7 @@ fun Startinstall(
                             gamelist.removeAt(0)
 
                             if (!gamelist.isEmpty()) {
-                                Startinstall(context, gamelist)
+                                Startinstall(context, gamelist, endCallback)
                             }
                             cancel()
                         }
@@ -198,7 +205,7 @@ fun Startinstall(
                         gamelist.removeAt(0)
 
                         if (!gamelist.isEmpty()) {
-                            Startinstall(context, gamelist)
+                            Startinstall(context, gamelist, endCallback)
                         } else {
 
                             //TURN BACK SLEEP SENSOR
@@ -206,6 +213,7 @@ fun Startinstall(
                             if(canUseShizuku() && IsStopSleep) {
                                 ShizAdbCommand("am broadcast -a com.oculus.vrpowermanager.automation_disable")
                             }
+                            endCallback()
                         }
                         cancel()
                     }
@@ -353,7 +361,7 @@ fun Startinstall(
 
                             if (game.MainProgress.value == 1F) {
                                 //move obb
-                                game.state.value = 2
+                                game.state.value = 3
 
                                 val movfile = File("$externalFilesDir/${game.game.ReleaseName}/${game.game.ReleaseName}/${game.game.PackageName}")
                                 val destfile = File("/storage/emulated/0/Android/obb/${game.game.PackageName}/")
@@ -366,7 +374,8 @@ fun Startinstall(
 
                                 val installTXTpath = "$externalFilesDir/${game.game.ReleaseName}/${game.game.ReleaseName}/install.txt"
 
-                                if(File(installTXTpath).exists()) {
+                                game.state.value = 4
+                                if(File(installTXTpath).exists() && canUseShizuku()) {
                                     ParseInstallTXT(context, installTXTpath)
                                 } else {
                                     for (file in File(apkFilePath).listFiles()!!) {
@@ -406,11 +415,12 @@ fun Startinstall(
                     gamelist.removeAt(0)
 
                     if (!gamelist.isEmpty()) {
-                        Startinstall(context, gamelist)
+                        Startinstall(context, gamelist, endCallback)
                     }   else {
                         if(canUseShizuku() && IsStopSleep) {
                             ShizAdbCommand("am broadcast -a com.oculus.vrpowermanager.automation_disable")
                         }
+                        endCallback()
                     }
                     cancel()
                 }
@@ -434,11 +444,12 @@ fun installApk(context: Context, apkpath:String, game:Game) {
                     "rm \"${file.path}\"")
         )
     } else {
-        val apkUri = FileProvider.getUriForFile(context, ".fileprovider", file)
+
+        val apkUri = FileProvider.getUriForFile(context.applicationContext, ".fileprovider", file)
         val intent = Intent(Intent.ACTION_VIEW).apply {setDataAndType(apkUri, "application/vnd.android.package-archive")
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
         }
-        startActivity(context, intent, null)
+        startActivity(context.applicationContext, intent, null)
         GlobalScope.launch {
             while (true) {
                 delay(1000)
