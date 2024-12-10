@@ -276,7 +276,7 @@ class MainActivity : ComponentActivity() {
 
                     if (Page == 2)
                         LoadPage({ getDonateGames(applicationContext, Gamelist).forEach() { donatelist.add(it) }
-                                if (!(donatelist.size == 0)) { Page == 4 } else { Page = 0 } }, //avoid loading donatelist if its empty
+                                if (!(donatelist.size == 0)) { Page = 4 } else { Page = 0 } }, //avoid loading donatelist if its empty
                             { Gamelist = it.toMutableList()}) // FOR LOADING META.7z
 
                     if (Page == 4) {
