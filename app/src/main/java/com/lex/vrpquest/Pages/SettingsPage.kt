@@ -265,7 +265,7 @@ fun SettingsPage(updatePage: () -> Unit) {
             RoundDivider()
 
 
-            SettingsTextDropdown("Change the theme (requires restart) ",
+            SettingsTextDropdown("Change the theme",
                 SettingGetSting(context, "theme") ?: "dark",
                 listOf("dark", "light", "transparent"), {
                     SettingStoreString(context, "theme", it)
