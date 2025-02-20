@@ -2,8 +2,10 @@ package com.lex.vrpquest
 
 
 import android.app.Activity
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -41,6 +43,8 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
@@ -76,6 +80,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import rikka.shizuku.Shizuku
+import java.io.File
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
@@ -146,6 +151,19 @@ class MainActivity : ComponentActivity() {
 
         setContent {
 
+            val context = applicationContext
+            val apkUri = FileProvider.getUriForFile(context.applicationContext, ".fileprovider", File("/storage/emulated/0/download/MiXplorer_v6.68.4_B24112322-arm64.apk"))
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                intent.setAction("android.intent.action.INSTALL_PACKAGE")
+                setDataAndType(apkUri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                //setComponent(ComponentName("com.oculus.vrshell", "com.oculus.vrshell.MainActivity"))
+            }
+
+            context.startActivity(intent)
             //THEME
 
             var themeid = SettingGetSting(applicationContext, "theme") ?: "dark"

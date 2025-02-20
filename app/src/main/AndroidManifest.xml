@@ -17,6 +17,9 @@
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"
+        tools:ignore="ProtectedPermissions" />
+
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES"/>
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
@@ -62,30 +65,6 @@
                 android:name="com.oculus.vrshell.supports_blend_effects"
                 android:value="true"/>
         </activity>
-        <activity  android:name=".ApkActivity"
-            android:exported="true"
-            android:screenOrientation="landscape"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar"
-            android:configChanges="density|keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|uiMode"
-            android:windowSoftInputMode="adjustNothing"
-            android:documentLaunchMode="always"
-            android:resizeableActivity="true"
-            android:stateNotNeeded="true"
-            android:excludeFromRecents="true">
-            <layout android:defaultWidth="1020dp" android:defaultHeight="640dp" android:gravity="top|end" />
-            <meta-data android:name="com.oculus.vrshell.supports_free_resizing" android:value="true"/>
-            <meta-data android:name="com.oculus.vrshell.free_resizing_limits" android:value="10000,10000,0,0"/>
-            <meta-data android:name="com.oculus.vrshell.supports_multi_instance" android:value="true" />
-            <meta-data android:name="com.oculus.vrshell.supports_multi_cursor" android:value="true" />
-            <meta-data android:name="com.oculus.lazy_gpumem_allocation" android:value="true" />
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-            <meta-data
-                android:name="com.oculus.vrshell.supports_blend_effects"
-                android:value="true"/>
-        </activity>
         <provider
             android:name="rikka.shizuku.ShizukuProvider"
             android:authorities="${applicationId}.shizuku"
@@ -103,7 +82,8 @@
                 android:resource="@xml/file_paths" /></provider>
 
         <service android:name=".Managers.DownloadService" android:exported="false"
-            android:foregroundServiceType="dataSync" />
+            android:foregroundServiceType="dataSync"
+            tools:ignore="ForegroundServicePermission" />
 
     </application>
 </manifest>

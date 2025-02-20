@@ -3,6 +3,7 @@ package com.lex.vrpquest.Managers
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
@@ -96,7 +97,6 @@ fun Startinstall(
     endCallback: () -> Unit
 ) {
     var IsFTP = SettingGetBoolean(context, "isPrivateFtp") ?: false
-
 
     val externalFilesDir = context.getExternalFilesDir(null)?.absolutePath.toString()
     val dispatch = CoroutineScope(Dispatchers.IO)
@@ -444,12 +444,13 @@ fun installApk(context: Context, apkpath:String, game:Game) {
                     "rm \"${file.path}\"")
         )
     } else {
-
         val apkUri = FileProvider.getUriForFile(context.applicationContext, ".fileprovider", file)
         val intent = Intent(Intent.ACTION_VIEW).apply {setDataAndType(apkUri, "application/vnd.android.package-archive")
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or FLAG_ACTIVITY_NEW_TASK
         }
+        intent.putExtra("android.intent.extra.INSTALLER_PACKAGE_NAME", context.getPackageName());
         startActivity(context.applicationContext, intent, null)
+
         GlobalScope.launch {
             while (true) {
                 delay(1000)
