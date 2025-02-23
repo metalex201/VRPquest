@@ -132,38 +132,7 @@ class MainActivity : ComponentActivity() {
         //KEEP DEVICE AWAKE
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        //Shizuku.addRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
-        //showNotification(applicationContext, "TEST NOTIF")
-        //checkPermission(0)
-        //enableEdgeToEdge()
-
-        //settingsTest
-        //SettingStoreSting(applicationContext, "test", "TESTTESTTEST")
-        //println("SETTINGS STORE GET RESULT : " + SettingGetSting(applicationContext, "test"))
-        //SettingStoreBoolean(applicationContext, "test", true)
-        //println("SETTINGS STORE GET RESULT : " + SettingGetSting(applicationContext, "test"))
-
-        //OBB TEST
-        //println("OBBTEST")
-        //val res = File("/storage/emulated/0/Android/obb/TESTTT").mkdirs()
-        //println("OBBTEST: $res")
-        //println(ShizAdbCommand("echo testt"))
-
         setContent {
-
-            val context = applicationContext
-            val apkUri = FileProvider.getUriForFile(context.applicationContext, ".fileprovider", File("/storage/emulated/0/download/MiXplorer_v6.68.4_B24112322-arm64.apk"))
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                intent.setAction("android.intent.action.INSTALL_PACKAGE")
-                setDataAndType(apkUri, "application/vnd.android.package-archive")
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                //setComponent(ComponentName("com.oculus.vrshell", "com.oculus.vrshell.MainActivity"))
-            }
-
-            context.startActivity(intent)
             //THEME
 
             var themeid = SettingGetSting(applicationContext, "theme") ?: "dark"

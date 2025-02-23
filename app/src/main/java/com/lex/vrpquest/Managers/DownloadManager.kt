@@ -444,12 +444,7 @@ fun installApk(context: Context, apkpath:String, game:Game) {
                     "rm \"${file.path}\"")
         )
     } else {
-        val apkUri = FileProvider.getUriForFile(context.applicationContext, ".fileprovider", file)
-        val intent = Intent(Intent.ACTION_VIEW).apply {setDataAndType(apkUri, "application/vnd.android.package-archive")
-            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or FLAG_ACTIVITY_NEW_TASK
-        }
-        intent.putExtra("android.intent.extra.INSTALLER_PACKAGE_NAME", context.getPackageName());
-        startActivity(context.applicationContext, intent, null)
+        installApk(context, file)
 
         GlobalScope.launch {
             while (true) {
