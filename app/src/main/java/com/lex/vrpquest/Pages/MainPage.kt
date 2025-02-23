@@ -8,7 +8,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -34,6 +36,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
 import com.lex.vrpquest.CustomColorScheme
 import com.lex.vrpquest.Managers.Game
 import com.lex.vrpquest.Utils.GetGameBitmap
@@ -41,7 +45,9 @@ import com.lex.vrpquest.Utils.RoundByteValue
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.io.File
 
+@OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 fun MainPage(Gamelist: MutableList<Game>, searchText: String, onClick: (Game) -> Unit, sortType:Int, reverersed:Boolean) {
     val lazygridstate = rememberLazyGridState()
@@ -89,10 +95,11 @@ fun MainPage(Gamelist: MutableList<Game>, searchText: String, onClick: (Game) ->
                 .clickable { onClick(game) },
             ) {
                 Column(Modifier.padding(10.dp)) {
-                    Image(modifier = Modifier
+                    GlideImage(modifier = Modifier
                         .fillMaxWidth()
+                        .aspectRatio(1.752336448598131F) //aspect ratio of thumbnail image in case its missing
                         .clip(RoundedCornerShape(40.dp)),
-                        bitmap = GetGameBitmap(game.Thumbnail),
+                        model = File(game.Thumbnail),
                         contentDescription = "")
                     Spacer(modifier = Modifier.size(10.dp))
                     Text(

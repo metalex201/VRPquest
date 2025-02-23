@@ -49,6 +49,7 @@ android {
 }
 
 dependencies {
+    implementation("com.github.bumptech.glide:compose:1.0.0-beta01")
     implementation("commons-net:commons-net:3.9.0")
     implementation("com.github.omicronapps:7-Zip-JBinding-4Android:Release-16.02-2.02")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
